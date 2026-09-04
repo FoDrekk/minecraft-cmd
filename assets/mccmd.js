@@ -136,8 +136,10 @@
       if (hidden.length) comps['tooltip_display'] = { hidden_components: hidden };
       Object.assign(comps, spec.components || {});
 
-      var body = MC.snbt(comps);
-      return id + (body === '{}' ? '' : '[' + body.slice(1, -1) + ']');
+      // Components are `name=value` pairs, not an SNBT compound: the
+      // separator at this level is `=`, and only the values are SNBT.
+      var pairs = Object.keys(comps).map(function (k) { return k + '=' + MC.snbt(comps[k]); });
+      return id + (pairs.length ? '[' + pairs.join(',') + ']' : '');
     }
 
     /* legacy_nbt (≤ 1.20.4) */
@@ -280,6 +282,59 @@
     }
   });
 
+  /* ── VERSION-FILTERED SELECTS ────────────────────
+     Options carry data-min (the rank they were added).
+     The select rebuilds when the version changes, so a
+     builder never offers an argument the version lacks. */
+  var versioned = [];
+
+  MC.versionedSelect = function (el) {
+    el = typeof el === 'string' ? document.getElementById(el) : el;
+    if (!el || el._mcVersioned) return el;
+    el._mcVersioned = true;
+    el._all = Array.prototype.map.call(el.querySelectorAll('option'), function (o) {
+      // Keep every data-* attribute — callers hang option metadata off them.
+      var data = {};
+      Object.keys(o.dataset).forEach(function (k) { data[k] = o.dataset[k]; });
+      return {
+        value: o.value, label: o.textContent, data: data,
+        min: parseInt(o.dataset.min || '0', 10),
+        group: (o.parentNode.tagName === 'OPTGROUP' ? o.parentNode.label : '')
+      };
+    });
+    versioned.push(el);
+    MC.refreshVersioned(el);
+    return el;
+  };
+
+  MC.refreshVersioned = function (el) {
+    if (!el || !el._all) return;
+    var rank = MC.v().rank || 0;
+    var want = el.value;
+    var groups = [], byGroup = {};
+    el._all.forEach(function (o) {
+      if (o.min > rank) return;
+      if (!byGroup[o.group]) { byGroup[o.group] = []; groups.push(o.group); }
+      byGroup[o.group].push(o);
+    });
+    var html = groups.map(function (g) {
+      var opts = byGroup[g].map(function (o) {
+        var attrs = Object.keys(o.data).map(function (k) {
+          var name = k.replace(/[A-Z]/g, function (c) { return '-' + c.toLowerCase(); });
+          return ' data-' + name + '="' + escapeHtml(o.data[k]) + '"';
+        }).join('');
+        return '<option value="' + escapeHtml(o.value) + '"' + attrs + '>' + escapeHtml(o.label) + '</option>';
+      }).join('');
+      return g ? '<optgroup label="' + escapeHtml(g) + '">' + opts + '</optgroup>' : opts;
+    }).join('');
+    el.innerHTML = html;
+    var still = el._all.some(function (o) { return o.value === want && o.min <= rank; });
+    el.value = still ? want : (el.options[0] ? el.options[0].value : '');
+    el.dataset.dropped = still ? '' : want;
+  };
+
+  MC.refreshAllVersioned = function () { versioned.forEach(MC.refreshVersioned); };
+
   /* ── VERSION PICKER WIRING ───────────────────── */
   document.addEventListener('DOMContentLoaded', function () {
     var sel = document.getElementById('mc-version-select');
@@ -290,6 +345,7 @@
     document.addEventListener('mc:version', function () {
       var b = document.getElementById('mc-version-note');
       if (b) b.textContent = MC.syn().label || '';
+      MC.refreshAllVersioned();
       if (typeof global.rebuild === 'function') global.rebuild();
     });
     var b = document.getElementById('mc-version-note');

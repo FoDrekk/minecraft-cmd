@@ -497,6 +497,9 @@ kbd {
   background:rgba(6,8,11,0.7); backdrop-filter:blur(6px);
   display:flex; align-items:flex-start; justify-content:center; padding:12vh 20px 20px;
 }
+/* display:flex above would otherwise beat the browser default for [hidden],
+   leaving an invisible layer over the page that swallows every click. */
+[hidden] { display:none !important }
 .search-modal {
   width:100%; max-width:640px; background:var(--card);
   border:1px solid var(--border2); border-radius:var(--r-lg);
