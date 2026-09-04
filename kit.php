@@ -113,7 +113,7 @@ $allItems = $ITEMS_FLAT;
 
 <div class="page-header">
   <div class="page-title">🎒 <span>Kit Builder</span></div>
-  <div class="page-sub">// Bina gear set lengkap — generate semua commands serentak</div>
+  <div class="page-sub">// Build a full loadout — generates every command at once</div>
 </div>
 
 <div class="content">
@@ -278,9 +278,9 @@ $allItems = $ITEMS_FLAT;
         <div style="font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:1px;margin-bottom:6px">💡 CARA GUNA</div>
         <div style="font-size:11px;color:var(--text2);line-height:1.8;font-family:var(--mono)">
           1. Setup kit di sebelah kiri<br>
-          2. Klik "Copy All" atau copy satu-satu<br>
-          3. Paste dalam Minecraft chat / command block<br>
-          4. Guna command block untuk run semua serentak
+          2. Click "Copy All", or copy them one at a time<br>
+          3. Paste into Minecraft chat or a command block<br>
+          4. Guna command block to run them all in one go
         </div>
       </div>
     </div>

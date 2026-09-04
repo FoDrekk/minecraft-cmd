@@ -57,7 +57,7 @@ $defaultTarget = 'nizkbiits';
     <div class="card-body">
       <div class="row" style="align-items:end">
         <div class="field" style="grid-column:1/-1">
-          <label>Command (boleh letak / atau tak)</label>
+          <label>Command (with or without the leading /)</label>
           <input type="text" id="cmd-input" placeholder="e.g. give nizkbiits diamond_sword 1" onkeydown="if(event.key==='Enter')addCmd()">
         </div>
       </div>
@@ -110,7 +110,7 @@ $defaultTarget = 'nizkbiits';
     </div>
     <div class="card-body">
       <div class="seq-list" id="seq-list">
-        <div class="seq-empty">📭<br>Tiada command lagi.<br>Add command di atas atau guna Quick Add.</div>
+        <div class="seq-empty">📭<br>No commands yet.<br>Add one above, or use Quick Add.</div>
       </div>
     </div>
   </div>
@@ -130,7 +130,7 @@ $defaultTarget = 'nizkbiits';
         <button class="otab" onclick="setOutTab('numbered',this)">Numbered</button>
       </div>
 
-      <div class="output-area" id="output-area">// Tambah commands untuk export</div>
+      <div class="output-area" id="output-area">// Tambah commands to export</div>
 
       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
         <button class="btn btn-green btn-lg" onclick="copyOutput()">📋 Copy Export</button>
@@ -159,10 +159,10 @@ $defaultTarget = 'nizkbiits';
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px">
         <div style="font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:1px;margin-bottom:8px">FORMAT GUIDE</div>
         <div style="font-size:11px;color:var(--text2);line-height:2;font-family:var(--mono)">
-          <b style="color:var(--green)">Plain</b> — untuk chat biasa<br>
-          <b style="color:var(--green)">With /</b> — untuk command block<br>
-          <b style="color:var(--green)">.mcfunction</b> — untuk datapack<br>
-          <b style="color:var(--green)">Numbered</b> — untuk rujukan
+          <b style="color:var(--green)">Plain</b> — for normal chat<br>
+          <b style="color:var(--green)">With /</b> — for a command block<br>
+          <b style="color:var(--green)">.mcfunction</b> — for a data pack<br>
+          <b style="color:var(--green)">Numbered</b> — for reference
         </div>
       </div>
 
@@ -228,7 +228,7 @@ function render(){
   document.getElementById('seq-count').textContent = sequence.length+' command'+(sequence.length!==1?'s':'');
 
   if(sequence.length===0){
-    list.innerHTML='<div class="seq-empty">📭<br>Tiada command lagi.<br>Add command di atas atau guna Quick Add.</div>';
+    list.innerHTML='<div class="seq-empty">📭<br>No commands yet.<br>Add one above, or use Quick Add.</div>';
     updateOutput(); return;
   }
 
@@ -256,7 +256,7 @@ function updateOutput(){
   document.getElementById('exp-chars').textContent = totalChars;
 
   if(cmds.length===0){
-    document.getElementById('output-area').textContent='// Tambah commands untuk export';
+    document.getElementById('output-area').textContent='// Tambah commands to export';
     return;
   }
 

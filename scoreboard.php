@@ -32,7 +32,7 @@ $defaultTarget = 'nizkbiits';
 
 <div class="page-header">
   <div class="page-title">📊 <span>Scoreboard Generator</span></div>
-  <div class="page-sub">// Buat, padam, display scoreboard objectives dengan mudah</div>
+  <div class="page-sub">// Create, remove and display scoreboard objectives</div>
 </div>
 
 <div class="content">
@@ -160,7 +160,7 @@ $defaultTarget = 'nizkbiits';
           </div>
         </div>
         <div style="background:rgba(240,96,96,0.05);border:1px solid rgba(240,96,96,0.15);border-radius:8px;padding:10px;margin-top:4px">
-          <p class="hint" style="color:var(--red)">⚠️ Ini akan padam objective dan semua score yang berkaitan!</p>
+          <p class="hint" style="color:var(--red)">⚠️ This deletes the objective and every score attached to it.</p>
         </div>
       </div>
 

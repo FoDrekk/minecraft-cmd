@@ -47,7 +47,7 @@ $defaultTarget = 'nizkbiits';
 
 <div class="page-header">
   <div class="page-title">🎆 <span>Firework Designer</span></div>
-  <div class="page-sub">// Reka firework rocket — pilih warna, shape & effect — generate /give command</div>
+  <div class="page-sub">// Design a firework rocket — colours, shape and effects — then copy the /give command</div>
 </div>
 
 <div class="content">
@@ -157,7 +157,7 @@ $defaultTarget = 'nizkbiits';
           <button class="btn btn-green" onclick="copyText(document.getElementById('fw-output').textContent)">📋 Copy</button>
         </div>
       </div>
-      <p class="hint">💡 Firework boleh ditembak dari crossbow atau dilempar tangan</p>
+      <p class="hint">💡 Fireworks can be fired from a crossbow or thrown by hand</p>
     </div>
   </div>
 
@@ -251,6 +251,8 @@ function toggleFx(type, btn) {
   buildFw(); playClick();
 }
 
+document.addEventListener('mc:version', () => buildFw());
+
 function buildFw() {
   const target = document.getElementById('fw-target').value || '@p';
   const qty = document.getElementById('fw-qty').value || 1;
@@ -261,22 +263,35 @@ function buildFw() {
 
   if(primColors.length === 0) {
     document.getElementById('fw-output').textContent = '/give '+target+' firework_rocket '+qty;
-    document.getElementById('fw-summary').textContent = '— Pilih warna dulu —';
+    document.getElementById('fw-summary').textContent = '— Pick at least one colour —';
     return;
   }
 
-  // Build NBT
-  const colorVals = primColors.map(c => c.val).join(',');
-  const fadeVals = fadeColors.map(c => c.val).join(',');
+  const colorVals = primColors.map(c => c.val);
+  const fadeVals = fadeColors.map(c => c.val);
 
-  let explosion = `{Type:${selectedShape}b,Colors:[I;${colorVals}]`;
-  if(fadeColors.length) explosion += `,FadeColors:[I;${fadeVals}]`;
-  if(fxTrail) explosion += ',Trail:1b';
-  if(fxTwinkle) explosion += ',Flicker:1b';
-  explosion += '}';
+  // The component form names the shape; the old NBT form used a numeric
+  // Type in the same order.
+  const SHAPE_IDS = ['small_ball', 'large_ball', 'star', 'creeper', 'burst'];
 
-  const nbt = `{Fireworks:{Flight:${flight}b,Explosions:[${explosion}]}}`;
-  const cmd = `/give ${target} firework_rocket${nbt} ${qty}`;
+  let item;
+  if (MC.syn().items === 'components') {
+    const explosion = { shape: SHAPE_IDS[selectedShape] || 'small_ball', colors: MC.intArray(colorVals) };
+    if (fadeColors.length) explosion.fade_colors = MC.intArray(fadeVals);
+    if (fxTrail) explosion.has_trail = true;
+    if (fxTwinkle) explosion.has_twinkle = true;
+    item = MC.item('firework_rocket', {
+      components: { fireworks: { flight_duration: MC.byte(flight), explosions: [explosion] } }
+    });
+  } else {
+    const explosion = { Type: MC.byte(selectedShape), Colors: MC.intArray(colorVals) };
+    if (fadeColors.length) explosion.FadeColors = MC.intArray(fadeVals);
+    if (fxTrail) explosion.Trail = MC.byte(1);
+    if (fxTwinkle) explosion.Flicker = MC.byte(1);
+    item = 'firework_rocket' + MC.snbt({ Fireworks: { Flight: MC.byte(flight), Explosions: [explosion] } });
+  }
+
+  const cmd = `/give ${target} ${item} ${qty}`;
 
   document.getElementById('fw-output').textContent = cmd;
 
@@ -320,7 +335,7 @@ function resizeCanvas() {
 
 function launchPreview() {
   const primColors = FW_COLORS.filter(c => selectedPrimary.has(c.id));
-  if(!primColors.length) { showToast('⚠️ Pilih warna dulu!','var(--red)'); return; }
+  if(!primColors.length) { showToast('⚠️ Pick at least one colour first.','var(--red)'); return; }
   const colors = primColors.map(c => c.hex);
   resizeCanvas();
   spawnFirework(colors);

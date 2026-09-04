@@ -50,7 +50,7 @@ textarea.page-text:focus{background:rgba(255,255,255,0.02)}
 
 <div class="page-header">
   <div class="page-title">📖 <span>Book Writer</span></div>
-  <div class="page-sub">// Tulis buku Minecraft — generate /give command untuk written_book</div>
+  <div class="page-sub">// Write a Minecraft book — generates a /give command for a written book</div>
 </div>
 
 <div class="content">
@@ -93,7 +93,7 @@ textarea.page-text:focus{background:rgba(255,255,255,0.02)}
     </div>
     <div class="card-body">
       <div class="pages-list" id="pages-list">
-        <div style="color:var(--text3);font-family:var(--mono);font-size:12px;padding:8px">// Klik "Add Page" untuk mula menulis</div>
+        <div style="color:var(--text3);font-family:var(--mono);font-size:12px;padding:8px">// Click "Add Page" to start writing</div>
       </div>
     </div>
   </div>
@@ -124,7 +124,7 @@ textarea.page-text:focus{background:rgba(255,255,255,0.02)}
         <div class="book-content">
           <div class="book-title" id="prev-title">Untitled Book</div>
           <div class="book-author" id="prev-author">by nizkbiits</div>
-          <div class="book-text" id="prev-text">[ Tiada kandungan lagi ]</div>
+          <div class="book-text" id="prev-text">[ Nothing written yet ]</div>
         </div>
         <div class="book-page-num" id="prev-pagenum">Page 1</div>
       </div>
@@ -164,7 +164,7 @@ textarea.page-text:focus{background:rgba(255,255,255,0.02)}
           <button class="btn btn-green" onclick="copyText(document.getElementById('bk-output').textContent)">📋 Copy</button>
         </div>
       </div>
-      <p class="hint">💡 Max 100 pages · Max 256 chars per page · Command boleh jadi sangat panjang</p>
+      <p class="hint">💡 Max 100 pages · Max 256 chars per page · The command can get very long</p>
     </div>
   </div>
 
@@ -194,7 +194,7 @@ function addPage(content='') {
 function renderPages() {
   const list = document.getElementById('pages-list');
   if(!pages.length) {
-    list.innerHTML='<div style="color:var(--text3);font-family:var(--mono);font-size:12px;padding:8px">// Klik "Add Page" untuk mula menulis</div>';
+    list.innerHTML='<div style="color:var(--text3);font-family:var(--mono);font-size:12px;padding:8px">// Click "Add Page" to start writing</div>';
     document.getElementById('page-count-badge').textContent='0 / 100';
     return;
   }
@@ -209,7 +209,7 @@ function renderPages() {
         </div>
       </div>
       <textarea class="page-text" id="pt-${p.id}" maxlength="256"
-        oninput="updatePageContent(${i},this)" placeholder="Tulis kandungan page ${i+1}...">${p.content}</textarea>
+        oninput="updatePageContent(${i},this)" placeholder="Write page ${i+1}…">${p.content}</textarea>
     </div>`).join('');
 }
 
@@ -242,9 +242,11 @@ function updatePreview() {
   if(pages.length) {
     document.getElementById('prev-text').textContent = pages[previewPage]?.content || '[ Empty page ]';
   } else {
-    document.getElementById('prev-text').textContent = '[ Tiada kandungan lagi ]';
+    document.getElementById('prev-text').textContent = '[ Nothing written yet ]';
   }
 }
+
+document.addEventListener('mc:version', () => buildBook());
 
 function buildBook() {
   const target = v('bk-target')||'@p';
@@ -263,9 +265,17 @@ function buildBook() {
     return;
   }
 
-  const pagesNbt = pages.map(p=>`'${JSON.stringify(p.content)}'`).join(',');
-  const nbt = `{title:"${title}",author:"${author}",pages:[${pagesNbt}]}`;
-  const cmd = `/give ${target} written_book${nbt} ${qty}`;
+  // Pages are text components stored inside item data, so how they are
+  // written changed twice: NBT before 1.20.5, the written_book_content
+  // component after, and SNBT rather than JSON strings from 1.21.5.
+  const pageNodes = pages.map(p => MC.raw(MC.nbtText(MC.text(p.content))));
+  const content = { title: title, author: author, pages: pageNodes };
+
+  const item = MC.syn().items === 'components'
+    ? MC.item('written_book', { components: { written_book_content: content } })
+    : 'written_book' + MC.snbt(content);
+
+  const cmd = `/give ${target} ${item} ${qty}`;
 
   document.getElementById('bk-output').textContent = cmd;
   document.getElementById('stat-cmd-len').textContent = cmd.length;

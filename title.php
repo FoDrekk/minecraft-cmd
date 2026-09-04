@@ -269,9 +269,9 @@ $defaultTarget = 'nizkbiits';
       <div style="background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px">
         <div style="font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:1px;margin-bottom:6px">💡 CARA GUNA</div>
         <div style="font-size:11px;color:var(--text2);line-height:1.9;font-family:var(--mono)">
-          1. Set timing dulu dengan /title times<br>
-          2. Lepas tu baru /title subtitle<br>
-          3. Last sekali /title title<br>
+          1. Set the timing first with /title times<br>
+          2. Then send /title subtitle<br>
+          3. Finally send /title title<br>
           4. Subtitle mesti sebelum title!
         </div>
       </div>

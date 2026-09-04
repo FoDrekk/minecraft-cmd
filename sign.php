@@ -70,7 +70,7 @@ $defaultTarget = 'nizkbiits';
 
 <div class="page-header">
   <div class="page-title">🪧 <span>Sign Text Generator</span></div>
-  <div class="page-sub">// Buat sign dengan text berwarna — generate /setblock atau /data command</div>
+  <div class="page-sub">// Make a sign with coloured text — generates a /setblock or /data command</div>
 </div>
 
 <div class="content">
@@ -270,6 +270,8 @@ function updateLine(line) {
   buildSign();
 }
 
+document.addEventListener('mc:version', () => buildSign());
+
 function buildSign() {
   const x=v('sg-x')||'~', y=v('sg-y')||'~', z=v('sg-z')||'~';
   const glow = v('sg-glow');
@@ -288,10 +290,15 @@ function buildSign() {
     if(underlined) obj.underlined=true;
     if(strikethrough) obj.strikethrough=true;
     if(obfuscated) obj.obfuscated=true;
-    lines.push(JSON.stringify(obj));
+    lines.push(MC.raw(MC.nbtText(obj)));
   }
 
-  const nbt = `{front_text:{messages:['${lines.join("','")}'],has_glowing_text:${glow}b}}`;
+  // Block entity data stays in braces on every version — components are
+  // for items. What did change in 1.21.5 is how the messages themselves
+  // are written, which MC.nbtText handles.
+  const nbt = MC.snbt({
+    front_text: { messages: lines, has_glowing_text: MC.byte(glow === 'true' || glow === true || glow === '1' ? 1 : 0) }
+  });
   const cmd = `/setblock ${x} ${y} ${z} ${signType}${nbt}`;
   document.getElementById('sign-output').textContent = cmd;
 }
