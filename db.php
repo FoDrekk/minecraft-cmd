@@ -1,62 +1,189 @@
 <?php
 // ================================================
-// db.php — Database Connection
+// db.php — Database connection and storage
+// ------------------------------------------------
+// MySQL is used when it is available (the normal XAMPP setup).
+// If it is not, the app falls back to a local SQLite file so every
+// feature still works — nothing here ever hard-fails a page.
 // ================================================
 
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'minecraft_cmd');
 define('DB_USER', 'root');       // XAMPP default
-define('DB_PASS', '');           // XAMPP default (kosong)
+define('DB_PASS', '');           // XAMPP default (empty)
 define('DB_CHAR', 'utf8mb4');
+
+define('DB_SQLITE_PATH', __DIR__ . '/data/minecraft_cmd.sqlite');
 
 define('APP_USER', 'nizkbiits'); // Default username
 
-function getDB(): ?PDO {
-    static $pdo = null;
-    if ($pdo !== null) return $pdo;
+function getDB(): ?PDO
+{
+    static $pdo = null, $tried = false;
+    if ($tried) return $pdo;
+    $tried = true;
 
+    $opts = [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ];
+
+    // 1. MySQL (preferred — matches the shipped database.sql)
     try {
-        $dsn = sprintf(
-            'mysql:host=%s;dbname=%s;charset=%s',
-            DB_HOST, DB_NAME, DB_CHAR
-        );
-        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
-            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false,
-        ]);
+        $dsn = sprintf('mysql:host=%s;dbname=%s;charset=%s', DB_HOST, DB_NAME, DB_CHAR);
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, $opts);
+        dbEnsureSchema($pdo);
         return $pdo;
     } catch (PDOException $e) {
-        // Return null-safe — page masih boleh jalan tanpa DB
-        error_log('DB Connection failed: ' . $e->getMessage());
+        error_log('MySQL unavailable, falling back to SQLite: ' . $e->getMessage());
+    }
+
+    // 2. SQLite fallback so the app still works out of the box
+    try {
+        $dir = dirname(DB_SQLITE_PATH);
+        if (!is_dir($dir)) @mkdir($dir, 0775, true);
+        $pdo = new PDO('sqlite:' . DB_SQLITE_PATH, null, null, $opts);
+        $pdo->exec('PRAGMA journal_mode = WAL');
+        dbEnsureSchema($pdo);
+        return $pdo;
+    } catch (PDOException $e) {
+        error_log('SQLite fallback failed: ' . $e->getMessage());
+        $pdo = null;
         return null;
     }
 }
 
+function dbDriver(?PDO $db = null): string
+{
+    $db = $db ?: getDB();
+    return $db ? $db->getAttribute(PDO::ATTR_DRIVER_NAME) : '';
+}
+
+/**
+ * Create anything that is missing, and add columns introduced after the
+ * original database.sql shipped. Safe to run on every connection.
+ */
+function dbEnsureSchema(PDO $db): void
+{
+    static $done = false;
+    if ($done) return;
+    $done = true;
+
+    $sqlite = $db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite';
+    $pk   = $sqlite ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INT UNSIGNED AUTO_INCREMENT PRIMARY KEY';
+    $now  = $sqlite ? "DATETIME DEFAULT CURRENT_TIMESTAMP" : "DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP";
+    $json = $sqlite ? 'TEXT' : 'JSON';
+    $eng  = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+
+    try {
+        $db->exec("CREATE TABLE IF NOT EXISTS command_history (
+            id $pk,
+            username VARCHAR(50) NOT NULL DEFAULT 'nizkbiits',
+            command TEXT NOT NULL,
+            tab VARCHAR(30) NOT NULL DEFAULT 'give',
+            created_at $now
+        )$eng");
+
+        $db->exec("CREATE TABLE IF NOT EXISTS favourites (
+            id $pk,
+            username VARCHAR(50) NOT NULL DEFAULT 'nizkbiits',
+            command TEXT NOT NULL,
+            tab VARCHAR(30) NOT NULL DEFAULT 'give',
+            note VARCHAR(255) DEFAULT NULL,
+            created_at $now
+        )$eng");
+
+        $db->exec("CREATE TABLE IF NOT EXISTS user_kits (
+            id $pk,
+            username VARCHAR(50) NOT NULL DEFAULT 'nizkbiits',
+            kit_name VARCHAR(100) NOT NULL,
+            kit_data $json NOT NULL,
+            created_at $now,
+            updated_at $now,
+            UNIQUE (username, kit_name)
+        )$eng");
+
+        $db->exec("CREATE TABLE IF NOT EXISTS user_presets (
+            id $pk,
+            username VARCHAR(50) NOT NULL DEFAULT 'nizkbiits',
+            preset_name VARCHAR(100) NOT NULL,
+            preset_type VARCHAR(30) NOT NULL DEFAULT 'sequence',
+            preset_data $json NOT NULL,
+            created_at $now,
+            UNIQUE (username, preset_name)
+        )$eng");
+
+        // Saved block palettes (Knowledge → Palette Builder)
+        $db->exec("CREATE TABLE IF NOT EXISTS user_palettes (
+            id $pk,
+            username VARCHAR(50) NOT NULL DEFAULT 'nizkbiits',
+            palette_name VARCHAR(100) NOT NULL,
+            style VARCHAR(40) DEFAULT NULL,
+            palette_data $json NOT NULL,
+            created_at $now,
+            UNIQUE (username, palette_name)
+        )$eng");
+
+        // Columns added after the first release
+        dbAddColumn($db, 'favourites',      'name',       "VARCHAR(120) DEFAULT NULL");
+        dbAddColumn($db, 'favourites',      'category',   "VARCHAR(40) DEFAULT NULL");
+        dbAddColumn($db, 'favourites',      'mc_version', "VARCHAR(20) DEFAULT NULL");
+        dbAddColumn($db, 'favourites',      'tags',       "VARCHAR(255) DEFAULT NULL");
+        dbAddColumn($db, 'command_history', 'mc_version', "VARCHAR(20) DEFAULT NULL");
+    } catch (PDOException $e) {
+        error_log('Schema check failed: ' . $e->getMessage());
+    }
+}
+
+/** Add a column only when it is missing. Works on MySQL and SQLite. */
+function dbAddColumn(PDO $db, string $table, string $column, string $definition): void
+{
+    try {
+        if ($db->getAttribute(PDO::ATTR_DRIVER_NAME) === 'sqlite') {
+            $cols = $db->query("PRAGMA table_info($table)")->fetchAll();
+            foreach ($cols as $c) if (strcasecmp($c['name'], $column) === 0) return;
+        } else {
+            $stmt = $db->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+            $stmt->execute([$column]);
+            if ($stmt->fetch()) return;
+        }
+        $db->exec("ALTER TABLE $table ADD COLUMN $column $definition");
+    } catch (PDOException $e) {
+        // A missing table is fine here — CREATE TABLE above owns that case.
+    }
+}
+
 // ── HISTORY ──────────────────────────────────
-function historyAdd(string $command, string $tab): bool {
+function historyAdd(string $command, string $tab, string $version = ''): bool
+{
     $db = getDB(); if (!$db) return false;
     try {
         $stmt = $db->prepare(
-            'INSERT INTO command_history (username, command, tab) VALUES (?, ?, ?)'
+            'INSERT INTO command_history (username, command, tab, mc_version) VALUES (?, ?, ?, ?)'
         );
-        return $stmt->execute([APP_USER, $command, $tab]);
+        return $stmt->execute([APP_USER, $command, $tab, $version ?: null]);
     } catch (PDOException $e) { return false; }
 }
 
-function historyGet(int $limit = 30): array {
+function historyGet(int $limit = 30): array
+{
     $db = getDB(); if (!$db) return [];
     try {
+        // LIMIT is inlined as a bounded integer — PDO cannot bind it with
+        // emulated prepares off on MySQL.
+        $limit = max(1, min(200, $limit));
         $stmt = $db->prepare(
-            'SELECT id, command, tab, created_at FROM command_history
-             WHERE username = ? ORDER BY created_at DESC LIMIT ?'
+            "SELECT id, command, tab, mc_version, created_at FROM command_history
+             WHERE username = ? ORDER BY created_at DESC, id DESC LIMIT $limit"
         );
-        $stmt->execute([APP_USER, $limit]);
+        $stmt->execute([APP_USER]);
         return $stmt->fetchAll();
     } catch (PDOException $e) { return []; }
 }
 
-function historyDelete(int $id): bool {
+function historyDelete(int $id): bool
+{
     $db = getDB(); if (!$db) return false;
     try {
         $stmt = $db->prepare('DELETE FROM command_history WHERE id = ? AND username = ?');
@@ -64,7 +191,8 @@ function historyDelete(int $id): bool {
     } catch (PDOException $e) { return false; }
 }
 
-function historyClear(): bool {
+function historyClear(): bool
+{
     $db = getDB(); if (!$db) return false;
     try {
         $stmt = $db->prepare('DELETE FROM command_history WHERE username = ?');
@@ -72,31 +200,59 @@ function historyClear(): bool {
     } catch (PDOException $e) { return false; }
 }
 
-// ── FAVOURITES ────────────────────────────────
-function favAdd(string $command, string $tab, string $note = ''): bool {
+// ── COMMAND LIBRARY (favourites) ──────────────
+function favAdd(string $command, string $tab, string $note = '', array $meta = []): bool
+{
     $db = getDB(); if (!$db) return false;
     try {
         $chk = $db->prepare('SELECT id FROM favourites WHERE username=? AND command=?');
         $chk->execute([APP_USER, $command]);
         if ($chk->fetch()) return false;
-        $stmt = $db->prepare('INSERT INTO favourites (username, command, tab, note) VALUES (?, ?, ?, ?)');
-        return $stmt->execute([APP_USER, $command, $tab, $note]);
+        $stmt = $db->prepare(
+            'INSERT INTO favourites (username, command, tab, note, name, category, mc_version, tags)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+        );
+        return $stmt->execute([
+            APP_USER, $command, $tab, $note,
+            $meta['name']     ?? null,
+            $meta['category'] ?? null,
+            $meta['version']  ?? null,
+            $meta['tags']     ?? null,
+        ]);
     } catch (PDOException $e) { return false; }
 }
 
-function favGet(): array {
+function favGet(string $category = ''): array
+{
     $db = getDB(); if (!$db) return [];
     try {
-        $stmt = $db->prepare(
-            'SELECT id, command, tab, note, created_at FROM favourites
-             WHERE username = ? ORDER BY created_at DESC'
-        );
-        $stmt->execute([APP_USER]);
+        $sql = 'SELECT id, command, tab, note, name, category, mc_version, tags, created_at
+                FROM favourites WHERE username = ?';
+        $args = [APP_USER];
+        if ($category !== '') { $sql .= ' AND category = ?'; $args[] = $category; }
+        $sql .= ' ORDER BY created_at DESC, id DESC';
+        $stmt = $db->prepare($sql);
+        $stmt->execute($args);
         return $stmt->fetchAll();
     } catch (PDOException $e) { return []; }
 }
 
-function favDelete(int $id): bool {
+function favUpdate(int $id, array $meta): bool
+{
+    $db = getDB(); if (!$db) return false;
+    try {
+        $stmt = $db->prepare(
+            'UPDATE favourites SET name=?, note=?, category=?, tags=? WHERE id=? AND username=?'
+        );
+        return $stmt->execute([
+            $meta['name'] ?? null, $meta['note'] ?? '', $meta['category'] ?? null,
+            $meta['tags'] ?? null, $id, APP_USER,
+        ]);
+    } catch (PDOException $e) { return false; }
+}
+
+function favDelete(int $id): bool
+{
     $db = getDB(); if (!$db) return false;
     try {
         $stmt = $db->prepare('DELETE FROM favourites WHERE id=? AND username=?');
@@ -105,18 +261,28 @@ function favDelete(int $id): bool {
 }
 
 // ── KITS ─────────────────────────────────────
-function kitSave(string $name, array $data): bool {
+function kitSave(string $name, array $data): bool
+{
     $db = getDB(); if (!$db) return false;
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE);
     try {
-        $stmt = $db->prepare(
-            'INSERT INTO user_kits (username, kit_name, kit_data) VALUES (?,?,?)
-             ON DUPLICATE KEY UPDATE kit_data=VALUES(kit_data), updated_at=NOW()'
-        );
-        return $stmt->execute([APP_USER, $name, json_encode($data, JSON_UNESCAPED_UNICODE)]);
+        if (dbDriver($db) === 'sqlite') {
+            $stmt = $db->prepare(
+                'INSERT INTO user_kits (username, kit_name, kit_data) VALUES (?,?,?)
+                 ON CONFLICT(username, kit_name) DO UPDATE SET kit_data=excluded.kit_data, updated_at=CURRENT_TIMESTAMP'
+            );
+        } else {
+            $stmt = $db->prepare(
+                'INSERT INTO user_kits (username, kit_name, kit_data) VALUES (?,?,?)
+                 ON DUPLICATE KEY UPDATE kit_data=VALUES(kit_data), updated_at=NOW()'
+            );
+        }
+        return $stmt->execute([APP_USER, $name, $json]);
     } catch (PDOException $e) { return false; }
 }
 
-function kitGet(): array {
+function kitGet(): array
+{
     $db = getDB(); if (!$db) return [];
     try {
         $stmt = $db->prepare(
@@ -125,85 +291,137 @@ function kitGet(): array {
         );
         $stmt->execute([APP_USER]);
         $rows = $stmt->fetchAll();
-        foreach ($rows as &$r) {
-            $r['kit_data'] = json_decode($r['kit_data'], true);
-        }
+        foreach ($rows as &$r) $r['kit_data'] = json_decode($r['kit_data'], true);
         return $rows;
     } catch (PDOException $e) { return []; }
 }
 
-function kitDelete(int $id): bool {
-    $db = getDB(); if (!$db) return false;
-    $stmt = $db->prepare('DELETE FROM user_kits WHERE id=? AND username=?');
-    return $stmt->execute([$id, APP_USER]);
-}
-
-// ── PRESETS ───────────────────────────────────
-function presetSave(string $name, string $type, array $data): bool {
+function kitDelete(int $id): bool
+{
     $db = getDB(); if (!$db) return false;
     try {
-        $stmt = $db->prepare(
-            'INSERT INTO user_presets (username, preset_name, preset_type, preset_data) VALUES (?,?,?,?)
-             ON DUPLICATE KEY UPDATE preset_data=VALUES(preset_data)'
-        );
-        return $stmt->execute([APP_USER, $name, $type, json_encode($data, JSON_UNESCAPED_UNICODE)]);
+        $stmt = $db->prepare('DELETE FROM user_kits WHERE id=? AND username=?');
+        return $stmt->execute([$id, APP_USER]);
     } catch (PDOException $e) { return false; }
 }
 
-function presetGet(string $type = ''): array {
-    $db = getDB(); if (!$db) return [];
+// ── PRESETS ───────────────────────────────────
+function presetSave(string $name, string $type, array $data): bool
+{
+    $db = getDB(); if (!$db) return false;
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE);
     try {
-        if ($type) {
+        if (dbDriver($db) === 'sqlite') {
             $stmt = $db->prepare(
-                'SELECT id, preset_name, preset_type, preset_data, created_at
-                 FROM user_presets WHERE username=? AND preset_type=? ORDER BY created_at DESC'
+                'INSERT INTO user_presets (username, preset_name, preset_type, preset_data) VALUES (?,?,?,?)
+                 ON CONFLICT(username, preset_name) DO UPDATE SET preset_data=excluded.preset_data'
             );
-            $stmt->execute([APP_USER, $type]);
         } else {
             $stmt = $db->prepare(
-                'SELECT id, preset_name, preset_type, preset_data, created_at
-                 FROM user_presets WHERE username=? ORDER BY created_at DESC'
+                'INSERT INTO user_presets (username, preset_name, preset_type, preset_data) VALUES (?,?,?,?)
+                 ON DUPLICATE KEY UPDATE preset_data=VALUES(preset_data)'
             );
-            $stmt->execute([APP_USER]);
         }
+        return $stmt->execute([APP_USER, $name, $type, $json]);
+    } catch (PDOException $e) { return false; }
+}
+
+function presetGet(string $type = ''): array
+{
+    $db = getDB(); if (!$db) return [];
+    try {
+        $sql  = 'SELECT id, preset_name, preset_type, preset_data, created_at FROM user_presets WHERE username=?';
+        $args = [APP_USER];
+        if ($type !== '') { $sql .= ' AND preset_type=?'; $args[] = $type; }
+        $sql .= ' ORDER BY created_at DESC';
+        $stmt = $db->prepare($sql);
+        $stmt->execute($args);
         $rows = $stmt->fetchAll();
-        foreach ($rows as &$r) {
-            $r['preset_data'] = json_decode($r['preset_data'], true);
-        }
+        foreach ($rows as &$r) $r['preset_data'] = json_decode($r['preset_data'], true);
         return $rows;
     } catch (PDOException $e) { return []; }
 }
 
-function presetDelete(int $id): bool {
+function presetDelete(int $id): bool
+{
     $db = getDB(); if (!$db) return false;
-    $stmt = $db->prepare('DELETE FROM user_presets WHERE id=? AND username=?');
-    return $stmt->execute([$id, APP_USER]);
+    try {
+        $stmt = $db->prepare('DELETE FROM user_presets WHERE id=? AND username=?');
+        return $stmt->execute([$id, APP_USER]);
+    } catch (PDOException $e) { return false; }
+}
+
+// ── PALETTES ──────────────────────────────────
+function paletteSave(string $name, string $style, array $data): bool
+{
+    $db = getDB(); if (!$db) return false;
+    $json = json_encode($data, JSON_UNESCAPED_UNICODE);
+    try {
+        if (dbDriver($db) === 'sqlite') {
+            $stmt = $db->prepare(
+                'INSERT INTO user_palettes (username, palette_name, style, palette_data) VALUES (?,?,?,?)
+                 ON CONFLICT(username, palette_name) DO UPDATE SET palette_data=excluded.palette_data, style=excluded.style'
+            );
+        } else {
+            $stmt = $db->prepare(
+                'INSERT INTO user_palettes (username, palette_name, style, palette_data) VALUES (?,?,?,?)
+                 ON DUPLICATE KEY UPDATE palette_data=VALUES(palette_data), style=VALUES(style)'
+            );
+        }
+        return $stmt->execute([APP_USER, $name, $style, $json]);
+    } catch (PDOException $e) { return false; }
+}
+
+function paletteGet(): array
+{
+    $db = getDB(); if (!$db) return [];
+    try {
+        $stmt = $db->prepare(
+            'SELECT id, palette_name, style, palette_data, created_at FROM user_palettes
+             WHERE username=? ORDER BY created_at DESC'
+        );
+        $stmt->execute([APP_USER]);
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$r) $r['palette_data'] = json_decode($r['palette_data'], true);
+        return $rows;
+    } catch (PDOException $e) { return []; }
+}
+
+function paletteDelete(int $id): bool
+{
+    $db = getDB(); if (!$db) return false;
+    try {
+        $stmt = $db->prepare('DELETE FROM user_palettes WHERE id=? AND username=?');
+        return $stmt->execute([$id, APP_USER]);
+    } catch (PDOException $e) { return false; }
 }
 
 // ── DB STATUS ─────────────────────────────────
-function dbStatus(): array {
+function dbStatus(): array
+{
     $db = getDB();
-    if (!$db) return ['connected' => false, 'error' => 'Cannot connect to MySQL'];
+    if (!$db) {
+        return [
+            'connected' => false,
+            'driver'    => '',
+            'error'     => 'No database available. MySQL could not be reached and the local SQLite file could not be created — check that the data/ folder is writable.',
+        ];
+    }
     try {
-        $db->query('SELECT 1');
-        // Check if tables exist first
-        $tables = $db->query("SHOW TABLES LIKE 'command_history'")->fetchAll();
-        if (empty($tables)) {
-            return ['connected' => true, 'tables_missing' => true, 'history' => 0, 'favourites' => 0, 'kits' => 0];
-        }
-        $histStmt = $db->prepare('SELECT COUNT(*) as n FROM command_history WHERE username=?');
-        $histStmt->execute([APP_USER]);
-        $hist = $histStmt->fetch()['n'];
-
-        $favStmt = $db->prepare('SELECT COUNT(*) as n FROM favourites WHERE username=?');
-        $favStmt->execute([APP_USER]);
-        $favs = $favStmt->fetch()['n'];
-
-        $kitStmt = $db->prepare('SELECT COUNT(*) as n FROM user_kits WHERE username=?');
-        $kitStmt->execute([APP_USER]);
-        $kits = $kitStmt->fetch()['n'];
-        return ['connected' => true, 'tables_missing' => false, 'history' => $hist, 'favourites' => $favs, 'kits' => $kits];
+        $count = function (string $t) use ($db): int {
+            $s = $db->prepare("SELECT COUNT(*) AS n FROM $t WHERE username=?");
+            $s->execute([APP_USER]);
+            return (int)$s->fetch()['n'];
+        };
+        return [
+            'connected'  => true,
+            'driver'     => dbDriver($db),
+            'history'    => $count('command_history'),
+            'favourites' => $count('favourites'),
+            'kits'       => $count('user_kits'),
+            'palettes'   => $count('user_palettes'),
+        ];
     } catch (Exception $e) {
-        return ['connected' => false, 'error' => $e->getMessage()];
+        return ['connected' => false, 'driver' => dbDriver($db), 'error' => 'Database tables could not be read.'];
     }
 }
