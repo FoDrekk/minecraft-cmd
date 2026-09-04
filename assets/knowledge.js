@@ -83,7 +83,7 @@
   function renderWall() {
     var wall = el('pal-wall');
     if (!wall) return;
-    var cells = 16 * 7;
+    var cells = 26 * 8;                                    // matches the CSS column count
     var weights = [['main', 0.56], ['secondary', 0.26], ['accent', 0.1], ['detail', 0.06], ['lighting', 0.02]];
     var out = [];
     weights.forEach(function (w) {

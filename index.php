@@ -29,6 +29,9 @@ $css = <<<CSS
 .hero-search:hover { border-color:var(--border3); box-shadow:var(--shadow) }
 .hero-search span { color:var(--text3); font-size:14.5px; flex:1; text-align:left }
 .home-sec { margin-top:30px }
+/* Eight quick actions, so cap at four columns to get two even rows. */
+.home-sec .tile-grid { grid-template-columns:repeat(auto-fill,minmax(215px,1fr)) }
+@media(min-width:1120px){ .home-sec .tile-grid { grid-template-columns:repeat(4,1fr) } }
 .home-sec-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:11px }
 .home-sec-title { font-size:11px; font-family:var(--mono); letter-spacing:2px; text-transform:uppercase; color:var(--text3); font-weight:700 }
 .home-sec-link { font-size:12px; color:var(--text3); text-decoration:none }

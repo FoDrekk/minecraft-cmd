@@ -48,16 +48,17 @@ $css = <<<CSS
   color:var(--text3); border:1px solid var(--border2); padding:1px 5px; border-radius:3px }
 
 /* Palette */
-.pal-roles { display:grid; grid-template-columns:repeat(auto-fit,minmax(158px,1fr)); gap:10px }
+.pal-roles { display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:9px }
+@media(min-width:760px){ .pal-roles { grid-template-columns:repeat(5,1fr) } }
 .pal-role { background:var(--bg2); border:1px solid var(--border); border-radius:var(--r-sm); padding:10px }
 .pal-role-label { font-size:9.5px; font-family:var(--mono); letter-spacing:1.4px; text-transform:uppercase;
   color:var(--text3); font-weight:700; margin-bottom:7px }
 .pal-role-swatch { height:52px; border-radius:var(--r-xs); margin-bottom:8px;
   border:1px solid rgba(255,255,255,0.12); box-shadow:inset 0 -12px 20px rgba(0,0,0,0.28) }
 .pal-role select { font-size:12px; padding:6px 8px }
-.wall { display:grid; grid-template-columns:repeat(16,1fr); gap:2px; border-radius:var(--r-sm);
+.wall { display:grid; grid-template-columns:repeat(26,1fr); gap:1px; border-radius:var(--r-sm);
   overflow:hidden; border:1px solid var(--border); padding:2px; background:var(--bg) }
-.wall i { aspect-ratio:1; border-radius:2px; display:block }
+.wall i { aspect-ratio:1; border-radius:1px; display:block }
 .pal-actions { display:flex; gap:7px; flex-wrap:wrap; margin-top:14px }
 .saved-pal { display:flex; align-items:center; gap:10px; padding:9px 12px; border:1px solid var(--border);
   border-radius:var(--r-sm); background:var(--card); margin-bottom:6px }
