@@ -139,6 +139,29 @@ switch ($action) {
         paletteDelete($id);
         ok(['rows' => paletteGet()]);
 
+    // ── COMMAND DOCTOR ────────────────────────
+    case 'doctor':
+        require_once __DIR__ . '/lib/doctor.php';
+        $cmd = mb_substr(trim($_POST['command'] ?? $_GET['command'] ?? ''), 0, 4000);
+        $ver = sanitize($_POST['version'] ?? $_GET['version'] ?? mcCurrentVersion(), 20);
+        try {
+            ok(['result' => doctorAnalyse($cmd, $ver)]);
+        } catch (Throwable $e) {
+            error_log('Doctor failed: ' . $e->getMessage());
+            err('That command could not be analysed. It may use syntax the Doctor does not understand yet.');
+        }
+
+    case 'explain':
+        require_once __DIR__ . '/lib/doctor.php';
+        $cmd = mb_substr(trim($_POST['command'] ?? $_GET['command'] ?? ''), 0, 4000);
+        $ver = sanitize($_POST['version'] ?? $_GET['version'] ?? mcCurrentVersion(), 20);
+        try {
+            ok(['result' => doctorExplain($cmd, $ver)]);
+        } catch (Throwable $e) {
+            error_log('Explain failed: ' . $e->getMessage());
+            err('That command could not be explained. Check it in the Doctor tab first.');
+        }
+
     // ── SURPRISE ME ───────────────────────────
     case 'surprise':
         require_once __DIR__ . '/lib/data/ideas.php';
