@@ -21,9 +21,11 @@ await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
 const jsErrors = [];
 page.on('pageerror', e => jsErrors.push(e.message));
 page.on('console', m => {
-  // ERR_FAILED is the blocked font request above, not a page fault.
+  // net::ERR_* is the blocked font request above (or the sandbox proxy
+  // refusing it), not a page fault. A missing local asset reports as an
+  // HTTP status instead, so those are still caught.
   const t = m.text();
-  if (m.type() === 'error' && !t.includes('favicon') && !t.includes('ERR_FAILED')) jsErrors.push('console: ' + t);
+  if (m.type() === 'error' && !t.includes('favicon') && !/net::ERR_/.test(t)) jsErrors.push('console: ' + t);
 });
 
 const PAGES = [

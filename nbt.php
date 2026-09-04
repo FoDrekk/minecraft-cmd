@@ -44,7 +44,7 @@ $defaultTarget = 'nizkbiits';
 
 <div class="page-header">
   <div class="page-title">🔧 <span>NBT Tag Builder</span></div>
-  <div class="page-sub">// Custom item name · lore · enchants — semua dalam satu /give command</div>
+  <div class="page-sub">// Custom name, lore and enchantments — all in one /give command</div>
 </div>
 
 <div class="content">
@@ -164,8 +164,7 @@ $defaultTarget = 'nizkbiits';
       <div style="margin-bottom:10px">
         <div style="font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:1px;margin-bottom:6px">VERSION</div>
         <div style="display:flex;gap:6px">
-          <button class="otab active" id="ver-java" onclick="setVer('java',this)">Java 1.20+</button>
-          <button class="otab" id="ver-java19" onclick="setVer('java19',this)">Java 1.12–1.19</button>
+          <span class="otab active" id="ver-note" title="Set the version in the top-right of the page">Syntax follows the version selector</span>
         </div>
       </div>
 
@@ -236,7 +235,6 @@ let selectedItem = 'diamond_sword';
 let selectedNameColor = 'green';
 let loreCount = 0;
 let enchCount = 0;
-let ver = 'java';
 
 // Build color swatches
 function initColors(){
@@ -362,70 +360,25 @@ function buildNbt(){
   if(hideFlags) tags.push('<span style="color:var(--text3)">Flags Hidden</span>');
   document.getElementById('prev-tags').innerHTML=tags.join(' · ');
 
-  // Build command
-  let cmd = '';
-  if(ver==='java'){
-    // Java 1.20+ uses components
-    const parts = [];
+  // Build command — MC.item writes NBT or components to match the
+  // version chosen in the top-right, so this no longer guesses.
+  const spec = {};
+  if (name) spec.name = MC.text(name, { color: selectedNameColor, bold, italic, underlined: underline });
+  if (lores.length) spec.lore = lores.map(l => MC.text(l.text, { color: l.color, italic: false }));
+  if (enchs.length) spec.enchants = enchs.map(e => ({ id: e.id, lvl: e.lvl }));
+  if (unbreakable) spec.unbreakable = true;
+  if (hideFlags) spec.hideFlags = true;
 
-    if(name){
-      const nameJson = {text:name,color:selectedNameColor,bold,italic,underline};
-      parts.push(`custom_name:'${JSON.stringify(nameJson)}'`);
-    }
+  const cmd = `/give ${target} ${MC.item(selectedItem, spec)}${qty > 1 ? ' ' + qty : ''}`;
 
-    if(lores.length){
-      const loreJson = lores.map(l=>JSON.stringify({text:l.text,color:l.color,italic:false}));
-      parts.push(`lore:[${loreJson.join(',')}]`);
-    }
-
-    if(enchs.length){
-      const enchStr = enchs.map(e=>`{id:"minecraft:${e.id}",lvl:${e.lvl}}`).join(',');
-      parts.push(`Enchantments:[${enchStr}]`);
-    }
-
-    if(unbreakable) parts.push('Unbreakable:1b');
-    if(hideFlags) parts.push('HideFlags:63');
-
-    const nbt = parts.length ? `{${parts.join(',')}}` : '';
-    cmd = `/give ${target} ${selectedItem}${nbt?' '+nbt:''} ${qty}`;
-
-  } else {
-    // Java 1.12-1.19 legacy
-    const parts = [];
-
-    if(name){
-      const bold_s = bold?',bold:true':'';
-      const italic_s = italic?',italic:true':',italic:false';
-      const under_s = underline?',underline:true':'';
-      parts.push(`display:{Name:'{"text":"${name}","color":"${selectedNameColor}"${bold_s}${italic_s}${under_s}}'`
-        +(lores.length ? `,Lore:[${lores.map(l=>`'{"text":"${l.text}","color":"${l.color}","italic":false}'`).join(',')}]` :'')
-        +'}');
-    } else if(lores.length){
-      parts.push(`display:{Lore:[${lores.map(l=>`'{"text":"${l.text}","color":"${l.color}","italic":false}'`).join(',')}]}`);
-    }
-
-    if(enchs.length){
-      const enchStr = enchs.map(e=>`{id:"minecraft:${e.id}",lvl:${e.lvl}}`).join(',');
-      parts.push(`Enchantments:[${enchStr}]`);
-    }
-
-    if(unbreakable) parts.push('Unbreakable:1b');
-    if(hideFlags) parts.push('HideFlags:63');
-
-    const nbt = parts.length ? `{${parts.join(',')}}` : '';
-    cmd = `/give ${target} ${selectedItem}${nbt?'{'+parts.join(',')+'}':''} ${qty}`;
-  }
+  const note = document.getElementById('ver-note');
+  if (note) note.textContent = MC.v().label + ' — ' + MC.syn().label;
 
   document.getElementById('nbt-output').textContent = cmd;
   document.getElementById('cmd-len').textContent = cmd.length+' chars';
 }
 
-function setVer(v, btn){
-  ver=v;
-  document.querySelectorAll('.otab').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  buildNbt(); playClick();
-}
+document.addEventListener('mc:version', () => buildNbt());
 
 function copyNbt(){
   const cmd=document.getElementById('nbt-output').textContent;
