@@ -1015,4 +1015,321 @@
     ['as', 'at', 'if_entity', 'run'].forEach(exAdd);
   });
 
+
+  /* ═══════════════════════════════════════════════
+     ATTRIBUTE
+     ═══════════════════════════════════════════════ */
+
+  /** The attribute id this version expects — prefixed before 1.21.4. */
+  function atId(key) {
+    var spec = ATTRIBUTES[key];
+    if (!spec) return key;
+    return MC.has('attribute_no_prefix') ? key : (spec.legacy || key);
+  }
+
+  // Equivalent operations either side of the 1.21 rename.
+  var AT_OP_PAIRS = [['add_value', 'add'], ['add_multiplied_base', 'multiply_base'], ['add_multiplied_total', 'multiply_total']];
+
+  /**
+   * The operation name for the selected version. Derived here rather than
+   * read straight off the select, because the version-change listeners can
+   * rebuild the command before the select has been re-rendered.
+   */
+  function atOperation() {
+    var want = v('at-mod-op');
+    var newOps = MC.has('attribute_new_ops');
+    var pair = AT_OP_PAIRS.find(function (p) { return p.indexOf(want) !== -1; });
+    if (!pair) return newOps ? 'add_value' : 'add';
+    return newOps ? pair[0] : pair[1];
+  }
+
+  function atSyncOps() {
+    var sel = el('at-mod-op');
+    if (!sel) return;
+    var ops = MC.has('attribute_new_ops') ? ATTR_OPS_NEW : ATTR_OPS_OLD;
+    var want = sel.value;
+    sel.innerHTML = Object.keys(ops).map(function (k) {
+      return '<option value="' + k + '">' + esc(ops[k]) + '</option>';
+    }).join('');
+    // Keep the equivalent operation selected across a version change.
+    var pair = AT_OP_PAIRS.find(function (p) { return p.indexOf(want) !== -1; });
+    if (pair) sel.value = ops[pair[0]] ? pair[0] : pair[1];
+    var desc = el('at-op-desc');
+    if (desc) desc.textContent = ops[sel.value] || '';
+  }
+
+  function atSyncFields(op) {
+    var show = {
+      value:    op === 'base-set',
+      modifier: op === 'modifier-add' || op === 'modifier-remove' || op === 'modifier-get',
+      scale:    op === 'get' || op === 'modifier-get'
+    };
+    Object.keys(show).forEach(function (k) {
+      var box = document.querySelector('[data-at-field="' + k + '"]');
+      if (box) box.hidden = !show[k];
+    });
+    var legacy = el('at-mod-legacy');
+    if (legacy) legacy.hidden = MC.has('attribute_id_arg') || op !== 'modifier-add';
+    var modOp = el('at-mod-op');
+    if (modOp) modOp.closest('.field').hidden = op !== 'modifier-add';
+  }
+
+  C.register('attribute', function () {
+    var w = [];
+    var op = C.state.atOp || 'get';
+    var target = v('at-target').trim();
+    var key = v('at-attr') || 'max_health';
+    var id = atId(key);
+    var spec = ATTRIBUTES[key] || {};
+
+    atSyncFields(op);
+    var descBox = el('at-attr-desc');
+    if (descBox) descBox.textContent = spec.desc || '';
+    var idBox = el('at-attr-id');
+    if (idBox) idBox.textContent = 'Written as ' + id + ' on ' + MC.v().label + '.';
+
+    if (!target) {
+      return { cmd: '', warnings: [{ level: 'error', text: 'Name the entity to change. /attribute works on one entity at a time, so a selector must match exactly one.' }] };
+    }
+    if (/^@[ae]$/.test(target) || /^@[ae]\[/.test(target)) {
+      w.push({ text: target + ' can match more than one entity, and /attribute needs exactly one. Add limit=1, or wrap the command in /execute as ' + target + ' run …' });
+    }
+    if (!MC.isJava()) {
+      return { cmd: '', warnings: [{ level: 'error', text: 'Bedrock has no /attribute command. Switch the version selector to a Java version.' }] };
+    }
+    // 1.21–1.21.3 sit in the window where sources disagree about the rename.
+    if (MC.has('attribute_prefix_unclear') && !MC.has('attribute_no_prefix')) {
+      w.push({ text: 'Attribute ids dropped the generic. prefix during the 1.21 cycle, and sources disagree on exactly which release. On ' +
+        MC.v().label + ' this builder writes the prefixed form — if the game rejects it, try ' + key + ' instead.' });
+    }
+
+    var head = '/attribute ' + target + ' ' + id;
+    var scale = numf('at-scale', 1);
+    var scaleArg = scale !== 1 ? ' ' + scale : '';
+
+    if (op === 'get') {
+      w.push({ text: 'Reports the final value after every modifier. Use “Set the base” to see or change the value underneath them.' });
+      return { cmd: head + ' get' + scaleArg, warnings: w };
+    }
+
+    if (op === 'base-set') {
+      var value = numf('at-value', 0);
+      if (key === 'max_health' && value <= 0) {
+        w.push({ level: 'error', text: 'Max health must be above 0 — the game rejects 0 or less.' });
+      }
+      if (key === 'knockback_resistance' && (value < 0 || value > 1)) {
+        w.push({ text: 'Knockback resistance runs from 0 to 1. Values outside that are clamped.' });
+      }
+      if (key === 'max_health') {
+        w.push({ text: 'Raising max health does not heal the entity. Follow it with /effect give … instant_health, or the entity stays on its old hearts.' });
+      }
+      return { cmd: head + ' base set ' + value, warnings: w };
+    }
+
+    var modId = v('at-mod-id').trim();
+    if (!modId) {
+      return { cmd: '', warnings: [{ level: 'error', text: 'A modifier needs an id. Use the same one later to remove it.' }] };
+    }
+    if (!MC.has('attribute_id_arg') && !/^[0-9a-f-]{36}$/i.test(modId)) {
+      w.push({ text: 'Before 1.21 the modifier was identified by a UUID, not a name. On ' + MC.v().label +
+        ' this field must be a UUID like 12345678-1234-1234-1234-123456789abc.' });
+    }
+    if (MC.has('attribute_id_arg') && modId.indexOf(':') === -1) {
+      w.push({ text: 'No namespace given, so the game will store this as minecraft:' + modId + '.' });
+    }
+
+    if (op === 'modifier-remove') {
+      return { cmd: head + ' modifier remove ' + modId, warnings: w };
+    }
+    if (op === 'modifier-get') {
+      return { cmd: head + ' modifier value get ' + modId + scaleArg, warnings: w };
+    }
+
+    // modifier add
+    var amount = numf('at-value', 1);
+    var tail = amount + ' ' + atOperation();
+
+    if (MC.has('attribute_id_arg')) {
+      return { cmd: head + ' modifier add ' + modId + ' ' + tail, warnings: w };
+    }
+    var name = v('at-mod-name').trim() || 'modifier';
+    w.push({ text: 'On ' + MC.v().label + ' a modifier takes a UUID and a name. From 1.21 both were replaced by a single id.' });
+    return { cmd: head + ' modifier add ' + modId + ' ' + name + ' ' + tail, warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('at-attr')) return;
+    C.state.atOp = 'get';
+    C.wirePills('at-op', 'atOp');
+    MC.versionedSelect('at-attr');
+    atSyncOps();
+    el('at-mod-op').addEventListener('change', function () {
+      var ops = MC.has('attribute_new_ops') ? ATTR_OPS_NEW : ATTR_OPS_OLD;
+      el('at-op-desc').textContent = ops[this.value] || '';
+      C.rebuild();
+    });
+    document.addEventListener('mc:version', function () { atSyncOps(); });
+    // "Add a modifier" reuses the value field, so keep it visible there too.
+    var origSync = atSyncFields;
+    atSyncFields = function (op) {
+      origSync(op);
+      var box = document.querySelector('[data-at-field="value"]');
+      if (box && op === 'modifier-add') box.hidden = false;
+    };
+  });
+
+  /* ═══════════════════════════════════════════════
+     DATA
+     ═══════════════════════════════════════════════ */
+
+  var DT_PATHS = {
+    entity: ['Health', 'Pos', 'Motion', 'Rotation', 'Air', 'Fire', 'CustomName', 'Invulnerable', 'NoGravity', 'Inventory', 'SelectedItem'],
+    block:  ['Items', 'CustomName', 'Lock', 'front_text', 'RecordItem', 'Command'],
+    storage: []
+  };
+
+  function dtSyncFields() {
+    var target = C.state.dtTarget || 'entity';
+    var op = C.state.dtOp || 'get';
+    var source = C.state.dtSource || 'value';
+
+    ['entity', 'block', 'storage'].forEach(function (k) {
+      var box = document.querySelector('[data-dt-field="' + k + '"]');
+      if (box) box.hidden = target !== k;
+    });
+    var show = {
+      path:   op !== 'merge',
+      modify: op === 'modify',
+      merge:  op === 'merge',
+      scale:  op === 'get',
+      value:  source === 'value',
+      from:   source === 'from',
+      index:  v('dt-mode') === 'insert'
+    };
+    Object.keys(show).forEach(function (k) {
+      var box = document.querySelector('[data-dt-field="' + k + '"]');
+      if (box) box.hidden = !show[k];
+    });
+
+    var presets = el('dt-path-presets');
+    if (presets) {
+      var list = DT_PATHS[target] || [];
+      presets.innerHTML = list.map(function (p) {
+        return '<button class="pill" data-dt-path="' + esc(p) + '">' + esc(p) + '</button>';
+      }).join('');
+    }
+  }
+
+  function dtTargetText(w) {
+    var target = C.state.dtTarget || 'entity';
+    if (target === 'entity') {
+      var sel = v('dt-entity').trim();
+      if (!sel) { w.push({ level: 'error', text: 'Name the entity to read or change.' }); return ''; }
+      if (/^@[ae]$/.test(sel) || /^@[ae]\[/.test(sel)) {
+        w.push({ text: sel + ' can match several entities, and /data needs exactly one. Add limit=1, or use /execute as ' + sel + ' run …' });
+      }
+      return 'entity ' + sel;
+    }
+    if (target === 'block') {
+      var c = [v('dt-x') || '~', v('dt-y') || '~', v('dt-z') || '~'];
+      var locals = c.filter(function (x) { return x.charAt(0) === '^'; }).length;
+      if (locals > 0 && locals < 3) {
+        w.push({ level: 'error', text: 'Local coordinates (^) cannot be mixed with ~ or plain numbers.' });
+      }
+      return 'block ' + c.join(' ');
+    }
+    var id = v('dt-storage').trim();
+    if (!id) { w.push({ level: 'error', text: 'A storage needs an id, for example mypack:counters.' }); return ''; }
+    if (id.indexOf(':') === -1) w.push({ text: 'No namespace given, so the game will store this as minecraft:' + id + '.' });
+    return 'storage ' + id;
+  }
+
+  C.register('data', function () {
+    var w = [];
+    dtSyncFields();
+
+    var op = C.state.dtOp || 'get';
+    var targetText = dtTargetText(w);
+    if (!targetText) return { cmd: '', warnings: w };
+
+    var path = v('dt-path').trim();
+
+    if (op === 'get') {
+      var scale = numf('dt-scale', 1);
+      if (!path && scale !== 1) {
+        w.push({ text: 'A scale only applies to a single number, so it needs a path pointing at one.' });
+      }
+      if (!path) w.push({ text: 'With no path this prints everything on the target, which can be a lot of output.' });
+      return { cmd: ('/data get ' + targetText + (path ? ' ' + path : '') + (path && scale !== 1 ? ' ' + scale : '')), warnings: w };
+    }
+
+    if (op === 'remove') {
+      if (!path) return { cmd: '', warnings: w.concat([{ level: 'error', text: 'Removing needs a path — without one there is nothing to remove.' }]) };
+      w.push({ level: 'warn', text: 'This deletes that data outright. Read it first with Get if you are not sure what is there.' });
+      return { cmd: '/data remove ' + targetText + ' ' + path, warnings: w };
+    }
+
+    if (op === 'merge') {
+      var nbt = v('dt-merge').trim();
+      if (!nbt) return { cmd: '', warnings: w.concat([{ level: 'error', text: 'Enter the NBT to merge in, as a compound in braces.' }]) };
+      if (nbt.charAt(0) !== '{' || nbt.charAt(nbt.length - 1) !== '}') {
+        w.push({ level: 'error', text: 'Merge takes a compound — it has to start with { and end with }.' });
+      }
+      w.push({ text: 'Merge only changes the keys you list. Everything else on the target is left alone.' });
+      return { cmd: '/data merge ' + targetText + ' ' + nbt, warnings: w };
+    }
+
+    // modify
+    if (!path) return { cmd: '', warnings: w.concat([{ level: 'error', text: 'Modifying needs a path saying what to change.' }]) };
+    var mode = v('dt-mode') || 'set';
+    var modeText = mode === 'insert' ? 'insert ' + Math.round(numf('dt-index', 0)) : mode;
+    var source = C.state.dtSource || 'value';
+
+    var tail;
+    if (source === 'value') {
+      var value = v('dt-value').trim();
+      if (!value) return { cmd: '', warnings: w.concat([{ level: 'error', text: 'Enter the value to write.' }]) };
+      tail = 'value ' + value;
+      if (/^-?\d+\.\d+$/.test(value)) {
+        w.push({ text: 'NBT numbers are typed: ' + value + ' is a double. Health and similar fields want a float, written ' + value + 'f.' });
+      }
+    } else {
+      var fromType = v('dt-from-type') || 'entity';
+      var fromTarget = v('dt-from-target').trim();
+      var fromPath = v('dt-from-path').trim();
+      if (!fromTarget) return { cmd: '', warnings: w.concat([{ level: 'error', text: 'Name where the value should be copied from.' }]) };
+      if (fromType === 'block') {
+        tail = 'from block ' + fromTarget + (fromPath ? ' ' + fromPath : '');
+        w.push({ text: 'For a block source give the coordinates, for example ~ ~-1 ~.' });
+      } else {
+        tail = 'from ' + fromType + ' ' + fromTarget + (fromPath ? ' ' + fromPath : '');
+      }
+    }
+
+    if ((mode === 'append' || mode === 'prepend' || mode === 'insert')) {
+      w.push({ text: mode.charAt(0).toUpperCase() + mode.slice(1) + ' only works on a path that points at a list.' });
+    }
+
+    return { cmd: '/data modify ' + targetText + ' ' + path + ' ' + modeText + ' ' + tail, warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('dt-path')) return;
+    C.state.dtTarget = 'entity';
+    C.state.dtOp = 'get';
+    C.state.dtSource = 'value';
+    C.wirePills('dt-target', 'dtTarget');
+    C.wirePills('dt-op', 'dtOp');
+    C.wirePills('dt-source', 'dtSource');
+    var mode = el('dt-mode');
+    if (mode) mode.addEventListener('change', function () { dtSyncFields(); C.rebuild(); });
+    document.addEventListener('click', function (e) {
+      var p = e.target.closest('[data-dt-path]');
+      if (!p) return;
+      el('dt-path').value = p.dataset.dtPath;
+      C.rebuild();
+    });
+    dtSyncFields();
+  });
+
 })();

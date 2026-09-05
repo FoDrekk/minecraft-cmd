@@ -617,6 +617,9 @@ var TEAM_VISIBILITY = <?= json_encode(gameTeamVisibility()) ?>;
 var TEAM_COLLISION = <?= json_encode(gameTeamCollision()) ?>;
 var BOSSBAR_COLORS = <?= json_encode(gameBossbarColors()) ?>;
 var BOSSBAR_STYLES = <?= json_encode(gameBossbarStyles()) ?>;
+var ATTRIBUTES = <?= json_encode(gameAttributes()) ?>;
+var ATTR_OPS_NEW = <?= json_encode(gameAttributeOps('26.2')) ?>;
+var ATTR_OPS_OLD = <?= json_encode(gameAttributeOps('1.20.6')) ?>;
 var TASK = <?= json_encode($task) ?>;
 </script>
 <script src="assets/commands.js"></script>
