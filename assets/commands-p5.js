@@ -758,4 +758,261 @@
     bbSyncFields('add');
   });
 
+
+  /* ═══════════════════════════════════════════════
+     EXECUTE — chain builder
+     ═══════════════════════════════════════════════ */
+
+  // Each link declares its label, the fields it edits, and how it renders.
+  // Adding a subcommand later means adding one entry here.
+  var EX_LINKS = {
+    as:            { label: 'as',            group: 'who',   fields: [['target', 'Run as', '@a']] },
+    at:            { label: 'at',            group: 'where', fields: [['target', 'At the position of', '@s']] },
+    positioned:    { label: 'positioned',    group: 'where', fields: [['x', 'X', '~'], ['y', 'Y', '~'], ['z', 'Z', '~']] },
+    positioned_as: { label: 'positioned as', group: 'where', fields: [['target', 'Take the position of', '@s']] },
+    in:            { label: 'in',            group: 'where', fields: [['dimension', 'Dimension', 'the_nether', ['overworld', 'the_nether', 'the_end']]] },
+    rotated:       { label: 'rotated',       group: 'face',  fields: [['yaw', 'Yaw', '~'], ['pitch', 'Pitch', '~']] },
+    rotated_as:    { label: 'rotated as',    group: 'face',  fields: [['target', 'Face the same way as', '@s']] },
+    facing:        { label: 'facing',        group: 'face',  fields: [['x', 'X', '~'], ['y', 'Y', '~'], ['z', 'Z', '~']] },
+    facing_entity: { label: 'facing entity', group: 'face',  fields: [['target', 'Look at', '@p'], ['anchor', 'From their', 'eyes', ['eyes', 'feet']]] },
+    anchored:      { label: 'anchored',      group: 'face',  fields: [['anchor', 'Measure from', 'eyes', ['eyes', 'feet']]] },
+    if_entity:     { label: 'if entity',     group: 'cond',  negatable: true, fields: [['target', 'Entity exists', '@e[type=zombie,distance=..10]']] },
+    if_block:      { label: 'if block',      group: 'cond',  negatable: true, fields: [['x', 'X', '~'], ['y', 'Y', '~-1'], ['z', 'Z', '~'], ['block', 'Is', 'stone']] },
+    if_score:      { label: 'if score',      group: 'cond',  negatable: true, fields: [
+                       ['holder', 'Holder', '@s'], ['objective', 'Objective', 'points'],
+                       ['op', 'Test', 'matches', ['matches', '<', '<=', '=', '>=', '>']],
+                       ['value', 'Value or range', '10']] },
+    store:         { label: 'store',         group: 'store', fields: [
+                       ['what', 'Store the', 'result', ['result', 'success']],
+                       ['into', 'Into a', 'score', ['score', 'bossbar']],
+                       ['a', 'Holder / bossbar id', '@s'],
+                       ['b', 'Objective / field', 'points']] },
+    run:           { label: 'run',           group: 'run',   fields: [['command', 'Command to run', 'say Zombie nearby']] }
+  };
+
+  var exChain = [];
+  var exSeq = 0;
+
+  function exAdd(type) {
+    var spec = EX_LINKS[type];
+    if (!spec) return;
+    if (type === 'run' && exChain.some(function (l) { return l.type === 'run'; })) {
+      MC.toast('A chain can only have one run', 'var(--red)');
+      return;
+    }
+    var link = { id: 'ex' + (++exSeq), type: type, negated: false };
+    spec.fields.forEach(function (f) { link[f[0]] = f[2]; });
+    // run always sits last, because everything after it is its argument.
+    if (type === 'run') exChain.push(link);
+    else {
+      var runAt = exChain.findIndex(function (l) { return l.type === 'run'; });
+      if (runAt === -1) exChain.push(link); else exChain.splice(runAt, 0, link);
+    }
+    exRender();
+    C.rebuild();
+  }
+
+  window.exMove = function (id, delta) {
+    var i = exChain.findIndex(function (l) { return l.id === id; });
+    var j = i + delta;
+    if (i < 0 || j < 0 || j >= exChain.length) return;
+    // run stays last; nothing may move past it.
+    if (exChain[i].type === 'run' || exChain[j].type === 'run') {
+      MC.toast('run always comes last', 'var(--gold)');
+      return;
+    }
+    var tmp = exChain[i]; exChain[i] = exChain[j]; exChain[j] = tmp;
+    exRender();
+    C.rebuild();
+  };
+
+  window.exRemove = function (id) {
+    exChain = exChain.filter(function (l) { return l.id !== id; });
+    exRender();
+    C.rebuild();
+  };
+
+  window.exNegate = function (id) {
+    var link = exChain.find(function (l) { return l.id === id; });
+    if (!link) return;
+    link.negated = !link.negated;
+    exRender();
+    C.rebuild();
+  };
+
+  window.exSet = function (id, key, value) {
+    var link = exChain.find(function (l) { return l.id === id; });
+    if (!link) return;
+    link[key] = value;
+    C.rebuild();
+  };
+
+  function exRender() {
+    var box = el('ex-chain');
+    if (!box) return;
+    el('ex-empty').hidden = exChain.length > 0;
+
+    box.innerHTML = exChain.map(function (link, i) {
+      var spec = EX_LINKS[link.type];
+      var name = spec.negatable && link.negated ? spec.label.replace(/^if/, 'unless') : spec.label;
+      var fields = spec.fields.map(function (f) {
+        var key = f[0], label = f[1], options = f[3];
+        var val = link[key] === undefined ? '' : link[key];
+        var control = options
+          ? '<select onchange="exSet(\'' + link.id + '\',\'' + key + '\',this.value)">' +
+              options.map(function (o) {
+                return '<option value="' + esc(o) + '"' + (o === val ? ' selected' : '') + '>' + esc(o) + '</option>';
+              }).join('') + '</select>'
+          : '<input value="' + esc(val) + '" oninput="exSet(\'' + link.id + '\',\'' + key + '\',this.value)">';
+        return '<div class="chain-field"><label>' + esc(label) + '</label>' + control + '</div>';
+      }).join('');
+
+      return (i > 0 ? '<div class="chain-arrow">↓</div>' : '') +
+        '<div class="chain-link chain-' + spec.group + '">' +
+          '<div class="chain-head">' +
+            '<span class="chain-name">' + esc(name) + '</span>' +
+            '<span class="chain-actions">' +
+              (spec.negatable
+                ? '<button class="chain-btn' + (link.negated ? ' on' : '') + '" onclick="exNegate(\'' + link.id + '\')" ' +
+                  'title="Flip between if and unless">' + (link.negated ? 'unless' : 'if') + '</button>'
+                : '') +
+              '<button class="chain-btn" onclick="exMove(\'' + link.id + '\',-1)" title="Move up">↑</button>' +
+              '<button class="chain-btn" onclick="exMove(\'' + link.id + '\',1)" title="Move down">↓</button>' +
+              '<button class="chain-btn danger" onclick="exRemove(\'' + link.id + '\')" title="Remove">✕</button>' +
+            '</span>' +
+          '</div>' +
+          '<div class="chain-fields">' + fields + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  /** One link as its command text, collecting problems as it goes. */
+  function exLinkText(link, w) {
+    var t = link.type;
+    var neg = link.negated ? 'unless' : 'if';
+
+    function coords(keys) {
+      var c = keys.map(function (k) { return (link[k] || '~').trim() || '~'; });
+      var locals = c.filter(function (x) { return x.charAt(0) === '^'; }).length;
+      if (locals > 0 && locals < c.length) {
+        w.push({ level: 'error', text: 'In the "' + EX_LINKS[t].label + '" link, local coordinates (^) cannot be mixed with ~ or plain numbers.' });
+      }
+      return c.join(' ');
+    }
+    function need(key, what) {
+      var val = (link[key] || '').trim();
+      if (!val) w.push({ level: 'error', text: 'The "' + EX_LINKS[t].label + '" link needs ' + what + '.' });
+      return val;
+    }
+
+    switch (t) {
+      case 'as':            return 'as ' + need('target', 'a target selector');
+      case 'at':            return 'at ' + need('target', 'a target selector');
+      case 'positioned':    return 'positioned ' + coords(['x', 'y', 'z']);
+      case 'positioned_as': return 'positioned as ' + need('target', 'a target selector');
+      case 'in':            return 'in ' + (link.dimension || 'overworld');
+      case 'rotated':       return 'rotated ' + [(link.yaw || '~'), (link.pitch || '~')].join(' ');
+      case 'rotated_as':    return 'rotated as ' + need('target', 'a target selector');
+      case 'facing':        return 'facing ' + coords(['x', 'y', 'z']);
+      case 'facing_entity': return 'facing entity ' + need('target', 'a target selector') + ' ' + (link.anchor || 'eyes');
+      case 'anchored':      return 'anchored ' + (link.anchor || 'eyes');
+      case 'if_entity':     return neg + ' entity ' + need('target', 'a target selector');
+      case 'if_block':      return neg + ' block ' + coords(['x', 'y', 'z']) + ' ' + need('block', 'a block to compare against');
+      case 'if_score': {
+        var holder = need('holder', 'a score holder');
+        var obj = need('objective', 'an objective');
+        var op = link.op || 'matches';
+        var val = need('value', op === 'matches' ? 'a value or range like 5..10' : 'another holder and objective');
+        if (op === 'matches') return neg + ' score ' + holder + ' ' + obj + ' matches ' + val;
+        return neg + ' score ' + holder + ' ' + obj + ' ' + op + ' ' + val;
+      }
+      case 'store': {
+        var into = link.into || 'score';
+        var a = need('a', into === 'score' ? 'a score holder' : 'a boss bar id');
+        var b = need('b', into === 'score' ? 'an objective' : 'value or max');
+        return 'store ' + (link.what || 'result') + ' ' + into + ' ' + a + ' ' + b;
+      }
+      case 'run':           return 'run ' + need('command', 'a command to run').replace(/^\//, '');
+      default:              return '';
+    }
+  }
+
+  var exSummaryToken = 0;
+
+  function exSummary(cmd) {
+    var box = el('ex-summary');
+    if (!box) return;
+    if (!cmd) {
+      box.innerHTML = '<div class="muted" style="font-size:13px">Build a chain and its plain-language walk-through appears here.</div>';
+      return;
+    }
+    var token = ++exSummaryToken;
+    // Reuses the Command Explainer, so the builder and the Doctor never
+    // disagree about what a chain does.
+    MC.api('explain', { command: cmd, version: MC.ver() }).then(function (d) {
+      if (token !== exSummaryToken || !box) return;
+      if (!d.ok || !d.result || !d.result.summary) {
+        box.innerHTML = '<div class="muted" style="font-size:13px">Could not summarise that chain.</div>';
+        return;
+      }
+      box.innerHTML = '<div class="ex-summary-line">' + esc(d.result.summary) + '</div>' +
+        '<div class="step-list">' + d.result.steps.map(function (s) {
+          return '<div class="exp-step"><div class="exp-step-label">' + esc(s[0]) + '</div>' +
+                 '<div class="exp-step-text">' + esc(s[1]) + '</div></div>';
+        }).join('') + '</div>';
+    });
+  }
+
+  C.register('execute', function () {
+    var w = [];
+
+    if (!exChain.length) {
+      exSummary('');
+      return { cmd: '', warnings: [{ text: 'Add a link to start the chain. Most chains begin with "as" or "at".' }] };
+    }
+
+    var parts = exChain.map(function (l) { return exLinkText(l, w); }).filter(Boolean);
+    var hasRun = exChain.some(function (l) { return l.type === 'run'; });
+    var hasTest = exChain.some(function (l) { return EX_LINKS[l.type].group === 'cond'; });
+    var hasStore = exChain.some(function (l) { return l.type === 'store'; });
+
+    if (!hasRun && !hasTest) {
+      w.push({ level: 'error', text: 'This chain never says what to do. Add a "run" link with the command to carry out, or a condition if you only want to test something.' });
+    }
+    if (!hasRun && hasTest) {
+      w.push({ text: 'With no "run", this only reports whether the condition matched — useful on its own, and for a command block\'s output signal.' });
+    }
+    if (hasStore && !hasRun) {
+      w.push({ level: 'error', text: '"store" saves the result of the command that "run" carries out, so the chain needs a run link too.' });
+    }
+
+    var firstCond = exChain.findIndex(function (l) { return EX_LINKS[l.type].group === 'cond'; });
+    var lastCtx = -1;
+    exChain.forEach(function (l, i) {
+      if (['as', 'at', 'positioned', 'positioned_as', 'rotated', 'rotated_as', 'facing', 'facing_entity', 'in', 'anchored'].indexOf(l.type) !== -1) lastCtx = i;
+    });
+    if (firstCond !== -1 && lastCtx > firstCond) {
+      w.push({ text: 'Links are read left to right, so a condition only sees the position and target set before it. Move context links above the condition if that is not what you meant.' });
+    }
+    if (exChain.some(function (l) { return l.type === 'as'; }) && !exChain.some(function (l) { return l.type === 'at'; })) {
+      w.push({ text: '"as" changes who @s means but not where the command runs from. Add "at @s" if it should also run at their position — this is the most common /execute mistake.' });
+    }
+
+    var hasError = w.some(function (x) { return x.level === 'error'; });
+    var cmd = '/execute ' + parts.join(' ');
+    exSummary(hasError ? '' : cmd);
+    if (hasError) exSummary('');
+
+    return { cmd: cmd, warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('ex-chain')) return;
+    document.querySelectorAll('[data-add]').forEach(function (b) {
+      b.addEventListener('click', function () { exAdd(b.dataset.add); if (window.playClick) playClick(); });
+    });
+    // A worked starting point rather than an empty screen.
+    ['as', 'at', 'if_entity', 'run'].forEach(exAdd);
+  });
+
 })();

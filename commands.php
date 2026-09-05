@@ -196,6 +196,46 @@ details.adv .adv-body { padding-top:12px }
 .bb-track::after { content:''; position:absolute; inset:0; pointer-events:none;
   background-image:var(--bb-notches, none) }
 .bb-meta { text-align:center; font-family:var(--mono); font-size:11px; color:var(--text3); margin-top:7px }
+
+/* ── Execute chain ── */
+.chain { display:flex; flex-direction:column; align-items:stretch }
+.chain-arrow { text-align:center; color:var(--text3); font-size:15px; line-height:1.1; margin:2px 0 }
+.chain-link { border:1px solid var(--border2); border-left-width:3px; border-radius:var(--r-sm);
+  background:var(--bg2); padding:9px 11px }
+.chain-who   { border-left-color:var(--purple) }
+.chain-where { border-left-color:var(--blue) }
+.chain-face  { border-left-color:var(--teal) }
+.chain-cond  { border-left-color:var(--gold) }
+.chain-store { border-left-color:var(--orange) }
+.chain-run   { border-left-color:var(--green) }
+.chain-head { display:flex; align-items:center; gap:9px; margin-bottom:7px }
+.chain-name { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--text);
+  letter-spacing:.4px; text-transform:uppercase }
+.chain-actions { margin-left:auto; display:flex; gap:4px }
+.chain-btn { min-width:24px; height:23px; padding:0 6px; border:1px solid var(--border2);
+  background:transparent; color:var(--text3); border-radius:var(--r-xs); cursor:pointer;
+  font-family:var(--mono); font-size:10.5px; transition:all .12s }
+.chain-btn:hover { border-color:var(--border3); color:var(--text2) }
+.chain-btn.on { border-color:rgba(232,169,74,0.45); color:var(--gold); background:rgba(232,169,74,0.1) }
+.chain-btn.danger:hover { border-color:var(--red); color:var(--red) }
+.chain-fields { display:flex; gap:8px; flex-wrap:wrap }
+.chain-field { display:flex; flex-direction:column; gap:3px; flex:1; min-width:104px }
+.chain-field label { font-size:9.5px; font-family:var(--mono); letter-spacing:1px;
+  text-transform:uppercase; color:var(--text3); font-weight:600 }
+.chain-field input, .chain-field select { font-size:12.5px; padding:6px 9px }
+.chain-add { display:flex; flex-direction:column; gap:7px; margin-top:14px;
+  padding-top:13px; border-top:1px solid var(--border) }
+.chain-add-group { display:flex; gap:5px; flex-wrap:wrap; align-items:center }
+.chain-add-label { font-size:9.5px; font-family:var(--mono); letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--text3); font-weight:700; width:72px; flex-shrink:0 }
+.ex-summary-line { font-size:14.5px; color:var(--text); line-height:1.6; margin-bottom:12px; font-weight:500 }
+.ex-summary .exp-step { display:grid; grid-template-columns:150px 1fr; gap:14px;
+  padding:9px 0; border-bottom:1px solid var(--border) }
+.ex-summary .exp-step:last-child { border-bottom:none }
+.ex-summary .exp-step-label { font-family:var(--mono); font-size:12px; color:var(--green);
+  font-weight:700; word-break:break-word }
+.ex-summary .exp-step-text { font-size:13.5px; color:var(--text2); line-height:1.6 }
+@media(max-width:620px){ .ex-summary .exp-step{grid-template-columns:1fr; gap:3px} }
 .obf { animation:obfuscate .3s steps(1) infinite }
 @keyframes obfuscate { 0%{opacity:1} 50%{opacity:.45} }
 CSS;
