@@ -141,7 +141,7 @@ details.adv .adv-body { padding-top:12px }
 .seg-list { display:flex; flex-direction:column; gap:7px }
 .seg { border:1px solid var(--border); border-radius:var(--r-sm); background:var(--bg2); padding:8px 9px }
 .seg-main { display:flex; gap:6px; align-items:center; flex-wrap:wrap }
-.seg-main .seg-type { width:118px; flex-shrink:0 }
+.seg-main .seg-type { width:134px; flex-shrink:0 }
 .seg-main .seg-value { flex:1; min-width:130px }
 .seg-main .seg-extra { width:130px }
 .seg-main .seg-color { width:112px; flex-shrink:0 }

@@ -216,9 +216,10 @@ body::before {
   letter-spacing: .8px; text-transform: uppercase;
 }
 
-input[type=text],
-input[type=number],
-input[type=email],
+/* An <input> with no type attribute is a text input, but does not match
+   input[type=text] — so match by exclusion instead. Range, checkbox,
+   radio and colour keep their own styling below. */
+input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]),
 select,
 textarea {
   width: 100%;
@@ -233,8 +234,7 @@ textarea {
   appearance: none; -webkit-appearance: none;
   line-height: 1.4;
 }
-input[type=text]:hover,
-input[type=number]:hover,
+input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]):hover,
 select:hover { border-color: var(--border3) }
 
 input:focus, select:focus, textarea:focus {
