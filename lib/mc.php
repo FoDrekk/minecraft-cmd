@@ -121,7 +121,28 @@ const MC_FEATURES = [
     'sign_front_back'   => 30,  // 1.20+   front_text / back_text
     'locate_biome'      => 30,  // 1.19+   /locate biome
     'attribute_command' => 40,  // 1.20.3+ /attribute (kept conservative)
-    'namespaced_attr'   => 50,  // 1.21+   attribute ids lost "generic." prefix in 1.21
+
+    // /particle options moved from space-separated extras to SNBT in 1.20.5:
+    //   dust 1 0 0 1  →  dust{color:[1,0,0],scale:1}
+    'particle_snbt'     => 50,  // 1.20.5+
+
+    // /attribute lost the uuid+name pair in favour of a single namespaced id,
+    // and the operations were renamed (add → add_value, and so on) in 1.21.
+    'attribute_id_arg'  => 55,  // 1.21+
+    'attribute_new_ops' => 55,  // 1.21+
+
+    // Attribute ids dropped the "generic." prefix during the 1.21 cycle.
+    // Sources disagree on whether that landed in 1.21 or 1.21.2, so this is
+    // gated at 1.21.4 — the first version in our list that is un-prefixed
+    // under either reading. Versions in the gap get a warning instead.
+    'attribute_no_prefix' => 60, // 1.21.4+
+    'attribute_prefix_unclear' => 55, // 1.21–1.21.3: flag the ambiguity
+
+    // Text component events were renamed in 1.21.5:
+    //   clickEvent → click_event, hoverEvent → hover_event,
+    //   show_text contents → value, run_command value → command,
+    //   open_url value → url
+    'text_event_snake'  => 70,  // 1.21.5+
 ];
 
 /** All versions, newest first. */

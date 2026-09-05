@@ -77,6 +77,46 @@ function registry_tools(): array
          'desc' => 'Remove entities by selector — with safety checks',
          'keywords' => 'kill remove entities despawn clear mobs delete items lag'],
 
+        ['id' => 'tellraw', 'icon' => '💬', 'title' => 'Tellraw', 'cat' => 'command',
+         'href' => 'commands.php?t=tellraw', 'accent' => 'pink',
+         'desc' => 'Formatted chat messages with colours, links and hover text',
+         'keywords' => 'tellraw chat message json text component colour color hover click link announce say formatted rainbow'],
+
+        ['id' => 'particle', 'icon' => '✨', 'title' => 'Particle', 'cat' => 'command',
+         'href' => 'commands.php?t=particle', 'accent' => 'purple',
+         'desc' => 'Spawn particles with colour, spread, speed and count',
+         'keywords' => 'particle particles effect dust smoke flame sparkle visual decoration ambience'],
+
+        ['id' => 'playsound', 'icon' => '🔊', 'title' => 'Playsound', 'cat' => 'command',
+         'href' => 'commands.php?t=playsound', 'accent' => 'orange',
+         'desc' => 'Play any sound to chosen players, with volume and pitch',
+         'keywords' => 'playsound sound audio noise music play effect bell thunder ding alert'],
+
+        ['id' => 'bossbar', 'icon' => '📛', 'title' => 'Boss Bar', 'cat' => 'command',
+         'href' => 'commands.php?t=bossbar', 'accent' => 'red',
+         'desc' => 'The bar across the top of the screen — timers and progress',
+         'keywords' => 'bossbar boss bar health timer progress top screen countdown objective display'],
+
+        ['id' => 'team', 'icon' => '🏳️', 'title' => 'Team', 'cat' => 'command',
+         'href' => 'commands.php?t=team', 'accent' => 'teal',
+         'desc' => 'Colour names, control friendly fire, collision and nametags',
+         'keywords' => 'team teams colour color friendly fire collision nametag glow group pvp sides'],
+
+        ['id' => 'execute', 'icon' => '⛓️', 'title' => 'Execute Builder', 'cat' => 'command',
+         'href' => 'commands.php?t=execute', 'accent' => 'green',
+         'desc' => 'Build an /execute chain visually, with a plain-language summary',
+         'keywords' => 'execute as at positioned rotated facing if unless store run chain conditional detect nearby'],
+
+        ['id' => 'attribute', 'icon' => '📈', 'title' => 'Attribute', 'cat' => 'command',
+         'href' => 'commands.php?t=attribute', 'accent' => 'blue',
+         'desc' => 'Change health, speed, damage, reach and other entity stats',
+         'keywords' => 'attribute attributes max health speed damage reach scale gravity modifier stat buff'],
+
+        ['id' => 'data', 'icon' => '🗂️', 'title' => 'Data', 'cat' => 'command',
+         'href' => 'commands.php?t=data', 'accent' => 'gold',
+         'desc' => 'Read and edit the NBT behind an entity, block or storage',
+         'keywords' => 'data nbt get merge modify remove storage entity block tag path edit inspect'],
+
         // ── Build ─────────────────────────────────
         ['id' => 'fill', 'icon' => '🧱', 'title' => 'Fill Area', 'cat' => 'build',
          'href' => 'build.php?t=fill', 'accent' => 'green',

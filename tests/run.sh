@@ -24,9 +24,14 @@ fi
 cleanup() { [ "$STARTED" = 1 ] && kill "$SERVER_PID" 2>/dev/null; }
 trap cleanup EXIT
 
+if ! node -e "import('playwright')" 2>/dev/null; then
+  echo "Playwright is not installed. Run: npm install" >&2
+  exit 1
+fi
+
 echo "Linting PHP…"
 FAILED=0
-for f in *.php lib/*.php lib/data/*.php; do
+for f in *.php lib/*.php lib/data/*.php lib/panels/*.php; do
   php -l "$f" > /dev/null || FAILED=1
 done
 [ "$FAILED" = 1 ] && { echo "PHP lint failed"; exit 1; }

@@ -32,7 +32,33 @@ $TASKS = [
         'summon'     => ['👾', 'Summon', 'red'],
         'kill'       => ['💀', 'Kill',   'red'],
     ],
+    'Text & display' => [
+        'tellraw'    => ['💬', 'Tellraw',   'pink'],
+        'particle'   => ['✨', 'Particle',  'purple'],
+        'playsound'  => ['🔊', 'Playsound', 'orange'],
+        'bossbar'    => ['📛', 'Boss bar',  'red'],
+        'team'       => ['🏳️', 'Team',      'teal'],
+    ],
+    'Advanced' => [
+        'execute'    => ['⛓️', 'Execute',   'green'],
+        'attribute'  => ['📈', 'Attribute', 'blue'],
+        'data'       => ['🗂️', 'Data',      'gold'],
+    ],
 ];
+
+// Panels for the groups above live in lib/panels/<id>.php. Each partial
+// renders one `.panel` with the same helpers as the panels written inline
+// below, so they share the rail, version selector and command output.
+// A task only appears once its partial exists, so the rail is never a
+// dead link — the same rule nav.php uses for sections.
+$PANEL_PARTIALS = [];
+foreach (['Text & display', 'Advanced'] as $group) {
+    foreach (array_keys($TASKS[$group] ?? []) as $id) {
+        if (is_file(__DIR__ . '/lib/panels/' . $id . '.php')) $PANEL_PARTIALS[] = $id;
+        else unset($TASKS[$group][$id]);
+    }
+    if (empty($TASKS[$group])) unset($TASKS[$group]);
+}
 $valid = [];
 foreach ($TASKS as $g) $valid = array_merge($valid, array_keys($g));
 if (!in_array($task, $valid, true)) $task = 'give';
@@ -110,6 +136,108 @@ details.adv .adv-body { padding-top:12px }
 .rowitem button:hover { border-color:var(--red); color:var(--red) }
 .rule-desc { font-size:12px; color:var(--text3); line-height:1.55; margin-top:8px }
 .out-wrap { margin-top:18px }
+
+/* ── Segment editor (tellraw) ── */
+.seg-list { display:flex; flex-direction:column; gap:7px }
+.seg { border:1px solid var(--border); border-radius:var(--r-sm); background:var(--bg2); padding:8px 9px }
+.seg-main { display:flex; gap:6px; align-items:center; flex-wrap:wrap }
+.seg-main .seg-type { width:134px; flex-shrink:0 }
+.seg-main .seg-value { flex:1; min-width:130px }
+.seg-main .seg-extra { width:130px }
+.seg-main .seg-color { width:112px; flex-shrink:0 }
+.seg-styles { display:flex; gap:3px; flex-shrink:0 }
+.seg-style {
+  width:25px; height:29px; border:1px solid var(--border2); background:transparent;
+  color:var(--text3); border-radius:var(--r-xs); cursor:pointer;
+  font-family:var(--mono); font-size:11px; font-weight:700; transition:all .12s;
+}
+.seg-style:hover { border-color:var(--border3); color:var(--text2) }
+.seg-style.on { border-color:rgba(232,111,168,0.45); color:var(--pink); background:rgba(232,111,168,0.1) }
+.seg-del { width:27px; height:29px; border:1px solid var(--border2); background:transparent;
+  color:var(--text3); border-radius:var(--r-xs); cursor:pointer; flex-shrink:0 }
+.seg-del:hover { border-color:var(--red); color:var(--red) }
+.seg-adv > summary { cursor:pointer; list-style:none; font-size:11px; font-family:var(--mono);
+  letter-spacing:1px; text-transform:uppercase; color:var(--text3); margin-top:7px; user-select:none }
+.seg-adv > summary::-webkit-details-marker { display:none }
+.seg-adv > summary::before { content:'▸ '; }
+.seg-adv[open] > summary::before { content:'▾ '; }
+.seg-adv > summary:hover { color:var(--text2) }
+.seg-adv-body { padding-top:9px }
+
+/* ── Chat preview ── */
+.chat-preview {
+  font-family:var(--mono); font-size:14px; line-height:1.7; padding:13px 15px;
+  background:#0b0b0f; border:1px solid var(--border); border-radius:var(--r-sm);
+  min-height:46px; word-break:break-word;
+}
+.chat-empty { color:var(--text3); font-style:italic; font-size:13px }
+
+/* ── Particle picker & preview ── */
+.pt-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; vertical-align:middle }
+.pt-flag { font-size:9px; font-family:var(--mono); letter-spacing:.8px; text-transform:uppercase;
+  color:var(--purple); border:1px solid rgba(155,120,240,0.3); padding:1px 5px; border-radius:3px; margin-left:6px }
+.particle-preview { position:relative; height:130px; border-radius:var(--r-sm);
+  border:1px solid var(--border); background:#0b0b0f; overflow:hidden }
+.particle-preview i { position:absolute; width:4px; height:4px; border-radius:50%;
+  transform:translate(-50%,-50%); opacity:.85 }
+
+/* ── Grouped picker headings (sounds) ── */
+.picker-group { font-size:9.5px; font-family:var(--mono); letter-spacing:1.4px; text-transform:uppercase;
+  color:var(--text3); font-weight:700; padding:8px 11px 3px; position:sticky; top:0; background:var(--bg2) }
+
+/* ── Boss bar preview ── */
+.bb-preview { padding:16px 18px; background:#0b0b0f; border:1px solid var(--border); border-radius:var(--r-sm) }
+.bb-title { text-align:center; font-family:var(--mono); font-size:14px; color:#fff;
+  text-shadow:2px 2px 0 rgba(0,0,0,0.7); margin-bottom:7px }
+.bb-track { height:11px; background:rgba(255,255,255,0.12); border-radius:2px; overflow:hidden; position:relative }
+.bb-fill { height:100%; width:50%; transition:width .18s ease, background .18s ease }
+/* Notches sit above the fill, so they are drawn by an overlay rather than
+   the track's own background — which the fill would cover. */
+.bb-track::after { content:''; position:absolute; inset:0; pointer-events:none;
+  background-image:var(--bb-notches, none) }
+.bb-meta { text-align:center; font-family:var(--mono); font-size:11px; color:var(--text3); margin-top:7px }
+
+/* ── Execute chain ── */
+.chain { display:flex; flex-direction:column; align-items:stretch }
+.chain-arrow { text-align:center; color:var(--text3); font-size:15px; line-height:1.1; margin:2px 0 }
+.chain-link { border:1px solid var(--border2); border-left-width:3px; border-radius:var(--r-sm);
+  background:var(--bg2); padding:9px 11px }
+.chain-who   { border-left-color:var(--purple) }
+.chain-where { border-left-color:var(--blue) }
+.chain-face  { border-left-color:var(--teal) }
+.chain-cond  { border-left-color:var(--gold) }
+.chain-store { border-left-color:var(--orange) }
+.chain-run   { border-left-color:var(--green) }
+.chain-head { display:flex; align-items:center; gap:9px; margin-bottom:7px }
+.chain-name { font-family:var(--mono); font-size:12.5px; font-weight:700; color:var(--text);
+  letter-spacing:.4px; text-transform:uppercase }
+.chain-actions { margin-left:auto; display:flex; gap:4px }
+.chain-btn { min-width:24px; height:23px; padding:0 6px; border:1px solid var(--border2);
+  background:transparent; color:var(--text3); border-radius:var(--r-xs); cursor:pointer;
+  font-family:var(--mono); font-size:10.5px; transition:all .12s }
+.chain-btn:hover { border-color:var(--border3); color:var(--text2) }
+.chain-btn.on { border-color:rgba(232,169,74,0.45); color:var(--gold); background:rgba(232,169,74,0.1) }
+.chain-btn.danger:hover { border-color:var(--red); color:var(--red) }
+.chain-fields { display:flex; gap:8px; flex-wrap:wrap }
+.chain-field { display:flex; flex-direction:column; gap:3px; flex:1; min-width:104px }
+.chain-field label { font-size:9.5px; font-family:var(--mono); letter-spacing:1px;
+  text-transform:uppercase; color:var(--text3); font-weight:600 }
+.chain-field input, .chain-field select { font-size:12.5px; padding:6px 9px }
+.chain-add { display:flex; flex-direction:column; gap:7px; margin-top:14px;
+  padding-top:13px; border-top:1px solid var(--border) }
+.chain-add-group { display:flex; gap:5px; flex-wrap:wrap; align-items:center }
+.chain-add-label { font-size:9.5px; font-family:var(--mono); letter-spacing:1.2px;
+  text-transform:uppercase; color:var(--text3); font-weight:700; width:72px; flex-shrink:0 }
+.ex-summary-line { font-size:14.5px; color:var(--text); line-height:1.6; margin-bottom:12px; font-weight:500 }
+.ex-summary .exp-step { display:grid; grid-template-columns:150px 1fr; gap:14px;
+  padding:9px 0; border-bottom:1px solid var(--border) }
+.ex-summary .exp-step:last-child { border-bottom:none }
+.ex-summary .exp-step-label { font-family:var(--mono); font-size:12px; color:var(--green);
+  font-weight:700; word-break:break-word }
+.ex-summary .exp-step-text { font-size:13.5px; color:var(--text2); line-height:1.6 }
+@media(max-width:620px){ .ex-summary .exp-step{grid-template-columns:1fr; gap:3px} }
+.obf { animation:obfuscate .3s steps(1) infinite }
+@keyframes obfuscate { 0%{opacity:1} 50%{opacity:.45} }
 CSS;
 
 ui_head('Commands', '', $css);
@@ -458,6 +586,12 @@ ui_head('Commands', '', $css);
     <div class="out-wrap"><?php ui_cmdout('out-kill', 'kill'); ?></div>
   </div>
 
+  <?php
+  foreach ($PANEL_PARTIALS as $partial) {
+      include __DIR__ . '/lib/panels/' . $partial . '.php';
+  }
+  ?>
+
   <?php echo ob_get_clean(); ?>
   </div>
 </div>
@@ -474,7 +608,20 @@ foreach ($ENCHANTS as $list) {
 ksort($ENCH_MAX);
 ?>
 var ENCHANTS = <?= json_encode($ENCH_MAX) ?>;
+var TR_COLORS = <?= json_encode(gameColors()) ?>;
+var PARTICLES = <?= json_encode(gameParticles()) ?>;
+var PARTICLE_OPTS = <?= json_encode(gameParticleOptions()) ?>;
+var SOUNDS = <?= json_encode(gameSounds()) ?>;
+var TEAM_OPTIONS = <?= json_encode(gameTeamOptions()) ?>;
+var TEAM_VISIBILITY = <?= json_encode(gameTeamVisibility()) ?>;
+var TEAM_COLLISION = <?= json_encode(gameTeamCollision()) ?>;
+var BOSSBAR_COLORS = <?= json_encode(gameBossbarColors()) ?>;
+var BOSSBAR_STYLES = <?= json_encode(gameBossbarStyles()) ?>;
+var ATTRIBUTES = <?= json_encode(gameAttributes()) ?>;
+var ATTR_OPS_NEW = <?= json_encode(gameAttributeOps('26.2')) ?>;
+var ATTR_OPS_OLD = <?= json_encode(gameAttributeOps('1.20.6')) ?>;
 var TASK = <?= json_encode($task) ?>;
 </script>
 <script src="assets/commands.js"></script>
+<script src="assets/commands-p5.js"></script>
 <?php ui_foot(); ?>
