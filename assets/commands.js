@@ -20,6 +20,9 @@
   function v(id) { var e = el(id); return e ? e.value.trim() : ''; }
   function chk(id) { var e = el(id); return e ? e.checked : false; }
   function num(id, dflt) { var n = parseInt(v(id), 10); return isNaN(n) ? dflt : n; }
+  // Decimal fields (particle delta, speed, attribute values) need the
+  // fractional part that num() deliberately truncates.
+  function numf(id, dflt) { var n = parseFloat(v(id)); return isNaN(n) ? dflt : n; }
   function clamp(n, lo, hi) { return Math.max(lo, Math.min(hi, n)); }
   function bedrock() { return !MC.isJava(); }
 
@@ -453,7 +456,7 @@
     /** Run once on DOMContentLoaded, after the core builders are wired. */
     onInit: function (fn) { initHooks.push(fn); },
     state: state,
-    el: el, v: v, chk: chk, num: num, clamp: clamp, bedrock: bedrock,
+    el: el, v: v, chk: chk, num: num, numf: numf, clamp: clamp, bedrock: bedrock,
     wirePills: wirePills,
     buildChips: buildChips,
     rebuild: function () { rebuild(); }

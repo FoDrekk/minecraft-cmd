@@ -171,6 +171,15 @@ details.adv .adv-body { padding-top:12px }
   min-height:46px; word-break:break-word;
 }
 .chat-empty { color:var(--text3); font-style:italic; font-size:13px }
+
+/* ── Particle picker & preview ── */
+.pt-dot { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:7px; vertical-align:middle }
+.pt-flag { font-size:9px; font-family:var(--mono); letter-spacing:.8px; text-transform:uppercase;
+  color:var(--purple); border:1px solid rgba(155,120,240,0.3); padding:1px 5px; border-radius:3px; margin-left:6px }
+.particle-preview { position:relative; height:130px; border-radius:var(--r-sm);
+  border:1px solid var(--border); background:#0b0b0f; overflow:hidden }
+.particle-preview i { position:absolute; width:4px; height:4px; border-radius:50%;
+  transform:translate(-50%,-50%); opacity:.85 }
 .obf { animation:obfuscate .3s steps(1) infinite }
 @keyframes obfuscate { 0%{opacity:1} 50%{opacity:.45} }
 CSS;
@@ -544,6 +553,8 @@ ksort($ENCH_MAX);
 ?>
 var ENCHANTS = <?= json_encode($ENCH_MAX) ?>;
 var TR_COLORS = <?= json_encode(gameColors()) ?>;
+var PARTICLES = <?= json_encode(gameParticles()) ?>;
+var PARTICLE_OPTS = <?= json_encode(gameParticleOptions()) ?>;
 var TASK = <?= json_encode($task) ?>;
 </script>
 <script src="assets/commands.js"></script>

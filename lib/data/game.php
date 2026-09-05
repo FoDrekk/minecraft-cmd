@@ -308,6 +308,16 @@ function gameBiomes(): array
 function gameParticles(): array
 {
     return [
+        // Particles taking extra arguments — see gameParticleOptions().
+        'dust' => ['label' => 'Dust (custom colour)', 'hex' => '#ff5555'],
+        'dust_color_transition' => ['label' => 'Dust — colour fade', 'hex' => '#c264d8'],
+        'block' => ['label' => 'Block break', 'hex' => '#8a8a8a'],
+        'block_marker' => ['label' => 'Block marker', 'hex' => '#9a9a9a'],
+        'falling_dust' => ['label' => 'Falling dust', 'hex' => '#b0a08a'],
+        'item' => ['label' => 'Item break', 'hex' => '#c9a227'],
+        'sculk_charge' => ['label' => 'Sculk charge', 'hex' => '#1fb8ad'],
+        'shriek' => ['label' => 'Shriek', 'hex' => '#2ba79b'],
+
         'flame' => ['label' => 'Flame', 'hex' => '#ff9d3a'],
         'soul_fire_flame' => ['label' => 'Soul Fire Flame', 'hex' => '#3ad2ff'],
         'smoke' => ['label' => 'Smoke', 'hex' => '#6b6b6b'],

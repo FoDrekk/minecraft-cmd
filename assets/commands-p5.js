@@ -10,7 +10,7 @@
 
   var C = window.CMD;
   if (!C) return;
-  var el = C.el, v = C.v, chk = C.chk, num = C.num, clamp = C.clamp;
+  var el = C.el, v = C.v, chk = C.chk, num = C.num, numf = C.numf, clamp = C.clamp;
   var esc = function (s) { return MC.escapeHtml(s); };
 
   /* ═══════════════════════════════════════════════
@@ -243,6 +243,186 @@
     trAddSegment();
     var first = document.querySelector('#tr-segments .seg-value');
     if (first && !first.value) first.value = 'Hello world';
+  });
+
+
+  /* ═══════════════════════════════════════════════
+     PARTICLE
+     ═══════════════════════════════════════════════ */
+
+  var ptSelected = 'flame';
+
+  function ptRenderList(filter) {
+    var list = el('pt-list');
+    if (!list) return;
+    var q = (filter || '').toLowerCase();
+    var ids = Object.keys(PARTICLES).filter(function (id) {
+      return !q || id.indexOf(q) !== -1 || PARTICLES[id].label.toLowerCase().indexOf(q) !== -1;
+    });
+    if (!ids.length) {
+      list.innerHTML = '<div class="picker-item muted">No particle matches that.</div>';
+      return;
+    }
+    list.innerHTML = ids.map(function (id) {
+      var p = PARTICLES[id];
+      var opt = PARTICLE_OPTS[id] ? ' <span class="pt-flag">options</span>' : '';
+      return '<div class="picker-item' + (id === ptSelected ? ' sel' : '') + '" data-particle="' + id + '">' +
+        '<span><i class="pt-dot" style="background:' + esc(p.hex) + '"></i>' + esc(p.label) + opt + '</span>' +
+        '<code>' + id + '</code></div>';
+    }).join('');
+  }
+
+  function ptSyncOptions() {
+    var wrap = el('pt-options');
+    if (!wrap) return;
+    var spec = PARTICLE_OPTS[ptSelected];
+    wrap.hidden = !spec;
+    if (!spec) return;
+    el('pt-options-note').textContent = spec.note;
+    var kind = spec.kind;
+    var show = {
+      color:  kind === 'dust' || kind === 'dust_transition',
+      color2: kind === 'dust_transition',
+      block:  kind === 'block_state',
+      item:   kind === 'item',
+      number: kind === 'roll' || kind === 'delay'
+    };
+    Object.keys(show).forEach(function (k) {
+      var row = document.querySelector('[data-pt-opt="' + k + '"]');
+      if (row) row.hidden = !show[k];
+    });
+  }
+
+  /** #rrggbb to the 0–1 float triple Minecraft wants. */
+  function ptRgb(hex) {
+    var m = /^#?([0-9a-f]{6})$/i.exec(hex || '');
+    if (!m) return [1, 0, 0];
+    var n = parseInt(m[1], 16);
+    return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+  }
+
+  var ptNum = function (n) {
+    // Minecraft accepts plain decimals; keep them short but unambiguous.
+    return (Math.round(n * 1000) / 1000).toString();
+  };
+
+  /** Particle argument: id plus options, in this version's shape. */
+  function ptArgument(w) {
+    var spec = PARTICLE_OPTS[ptSelected];
+    if (!spec) return ptSelected;
+
+    var snbt = MC.has('particle_snbt');
+    var kind = spec.kind;
+
+    if (kind === 'dust' || kind === 'dust_transition') {
+      var c = ptRgb(v('pt-color'));
+      var scale = numf('pt-scale', 1);
+      if (kind === 'dust') {
+        return snbt
+          ? ptSelected + '{color:[' + c.map(ptNum).join(',') + '],scale:' + ptNum(scale) + '}'
+          : ptSelected + ' ' + c.map(ptNum).join(' ') + ' ' + ptNum(scale);
+      }
+      var c2 = ptRgb(v('pt-color2'));
+      return snbt
+        ? ptSelected + '{from_color:[' + c.map(ptNum).join(',') + '],scale:' + ptNum(scale) +
+          ',to_color:[' + c2.map(ptNum).join(',') + ']}'
+        : ptSelected + ' ' + c.map(ptNum).join(' ') + ' ' + ptNum(scale) + ' ' + c2.map(ptNum).join(' ');
+    }
+
+    if (kind === 'block_state') {
+      var block = (v('pt-block') || 'stone').replace(/^minecraft:/, '');
+      return snbt ? ptSelected + '{block_state:"minecraft:' + block + '"}' : ptSelected + ' ' + block;
+    }
+
+    if (kind === 'item') {
+      var item = (v('pt-item') || 'apple').replace(/^minecraft:/, '');
+      return snbt ? ptSelected + '{item:{id:"minecraft:' + item + '",count:1}}' : ptSelected + ' ' + item;
+    }
+
+    var n = numf('pt-number', 1);
+    if (kind === 'roll') return snbt ? ptSelected + '{roll:' + ptNum(n) + '}' : ptSelected + ' ' + ptNum(n);
+    if (kind === 'delay') return snbt ? ptSelected + '{delay:' + Math.round(n) + '}' : ptSelected + ' ' + Math.round(n);
+    return ptSelected;
+  }
+
+  function ptPreview(count, spread) {
+    var box = el('pt-preview');
+    if (!box) return;
+    var spec = PARTICLE_OPTS[ptSelected];
+    var hex = (spec && (spec.kind === 'dust' || spec.kind === 'dust_transition'))
+      ? v('pt-color') : (PARTICLES[ptSelected] || {}).hex || '#ffffff';
+    var dots = Math.max(1, Math.min(60, count || 1));
+    var reach = Math.max(0, Math.min(1, (spread || 0) / 3));
+    var html = '';
+    var seed = 11;
+    for (var i = 0; i < dots; i++) {
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      var x = 50 + ((seed % 1000) / 1000 - 0.5) * 92 * reach;
+      seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+      var y = 50 + ((seed % 1000) / 1000 - 0.5) * 78 * reach;
+      html += '<i style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;background:' + esc(hex) + '"></i>';
+    }
+    box.innerHTML = html;
+  }
+
+  C.register('particle', function () {
+    var w = [];
+    var pos = [v('pt-x') || '~', v('pt-y') || '~', v('pt-z') || '~'];
+    var delta = [numf('pt-dx', 0), numf('pt-dy', 0), numf('pt-dz', 0)];
+    var speed = Math.max(0, numf('pt-speed', 0));
+    var count = Math.max(0, Math.round(numf('pt-count', 1)));
+    var mode = v('pt-mode') || 'normal';
+    var viewers = v('pt-viewers');
+
+    ptSyncOptions();
+    ptPreview(count, Math.max(delta[0], delta[1], delta[2]));
+
+    var locals = pos.filter(function (c) { return c.charAt(0) === '^'; }).length;
+    if (locals > 0 && locals < 3) {
+      w.push({ level: 'error', text: 'Local coordinates (^) cannot be mixed with ~ or plain numbers. Use ^ for all three, or none.' });
+    }
+
+    var parts = ['/particle', ptArgument(w), pos.join(' ')];
+    var needsTail = viewers || mode !== 'normal';
+    if (delta.some(function (d) { return d !== 0; }) || speed !== 0 || count !== 1 || needsTail) {
+      parts.push(delta.map(ptNum).join(' '), ptNum(speed), String(count));
+    }
+    if (needsTail) parts.push(mode);
+    if (viewers) parts.push(viewers);
+
+    if (count === 0) {
+      w.push({ text: 'With a count of 0 the delta becomes a direction and speed becomes how fast the particles travel that way. One particle is spawned per command.' });
+      if (speed === 0) w.push({ text: 'Count 0 and speed 0 together produce a single motionless particle.' });
+    }
+    if (count > 1000) w.push({ text: count.toLocaleString('en-GB') + ' particles in one command will hit frame rate. A few hundred is usually plenty.' });
+    if (mode === 'normal' && viewers) {
+      w.push({ text: 'Normal mode only shows particles within about 32 blocks, and players on reduced particle settings may not see them at all.' });
+    }
+    if (!MC.has('particle_snbt') && PARTICLE_OPTS[ptSelected]) {
+      w.push({ text: 'On ' + MC.v().label + ' the extra values go after the particle name as separate arguments. From 1.20.5 they moved into braces after the name instead.' });
+    }
+    if (!MC.isJava()) {
+      w.push({ level: 'error', text: 'Bedrock uses /particle <effect> <position> with its own particle ids and no delta, speed or count. This builder generates Java syntax only.' });
+    }
+
+    return { cmd: parts.join(' '), warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('pt-list')) return;
+    ptRenderList('');
+    el('pt-search').addEventListener('input', function () { ptRenderList(this.value); });
+    el('pt-list').addEventListener('click', function (e) {
+      var row = e.target.closest('[data-particle]');
+      if (!row) return;
+      ptSelected = row.dataset.particle;
+      el('pt-picked').textContent = 'minecraft:' + ptSelected;
+      ptRenderList(el('pt-search').value);
+      ptSyncOptions();
+      C.rebuild();
+      if (window.playSelect) playSelect();
+    });
+    ptSyncOptions();
   });
 
 })();
