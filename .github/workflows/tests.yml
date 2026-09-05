@@ -1,0 +1,54 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: Lint and browser tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # The app is plain PHP. pdo_sqlite and sqlite3 are what db.php falls
+      # back to when MySQL is not reachable, which is the case here.
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: pdo_sqlite, sqlite3, mbstring
+          coverage: none
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # Playwright drives the suites. Cache the browser download so a
+      # re-run does not fetch Chromium again.
+      - name: Install test dependencies
+        run: npm install --no-audit --no-fund
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package.json') }}
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      # tests/run.sh starts its own PHP server unless MCCMD_BASE already
+      # points at a running one, and passes that base to every suite.
+      - name: Run the test suite
+        run: ./tests/run.sh
+
+      - name: Upload the server log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: php-server-log
+          path: /tmp/mccmd-test-server.log
+          if-no-files-found: ignore

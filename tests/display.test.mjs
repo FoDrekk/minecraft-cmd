@@ -1,5 +1,5 @@
 // /playsound, /team and /bossbar builders.
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 const BASE = process.env.MCCMD_BASE || 'http://127.0.0.1:8899';
 let pass = 0, fail = 0;

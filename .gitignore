@@ -2,3 +2,6 @@
 # Anchored with a leading slash: an unanchored "data/" also matches
 # lib/data/, which silently excluded the whole content library.
 /data/
+
+# Test harness dependencies (see package.json).
+/node_modules/

@@ -1,7 +1,7 @@
 // The pre-existing generators, checked across syntax eras.
 // These used to emit legacy NBT unconditionally, which is rejected
 // from 1.20.5 onward — the default version.
-import { chromium } from '/opt/node22/lib/node_modules/playwright/index.mjs';
+import { chromium } from 'playwright';
 
 const BASE = process.env.MCCMD_BASE || 'http://127.0.0.1:8899';
 let pass = 0, fail = 0;
