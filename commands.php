@@ -180,6 +180,22 @@ details.adv .adv-body { padding-top:12px }
   border:1px solid var(--border); background:#0b0b0f; overflow:hidden }
 .particle-preview i { position:absolute; width:4px; height:4px; border-radius:50%;
   transform:translate(-50%,-50%); opacity:.85 }
+
+/* ── Grouped picker headings (sounds) ── */
+.picker-group { font-size:9.5px; font-family:var(--mono); letter-spacing:1.4px; text-transform:uppercase;
+  color:var(--text3); font-weight:700; padding:8px 11px 3px; position:sticky; top:0; background:var(--bg2) }
+
+/* ── Boss bar preview ── */
+.bb-preview { padding:16px 18px; background:#0b0b0f; border:1px solid var(--border); border-radius:var(--r-sm) }
+.bb-title { text-align:center; font-family:var(--mono); font-size:14px; color:#fff;
+  text-shadow:2px 2px 0 rgba(0,0,0,0.7); margin-bottom:7px }
+.bb-track { height:11px; background:rgba(255,255,255,0.12); border-radius:2px; overflow:hidden; position:relative }
+.bb-fill { height:100%; width:50%; transition:width .18s ease, background .18s ease }
+/* Notches sit above the fill, so they are drawn by an overlay rather than
+   the track's own background — which the fill would cover. */
+.bb-track::after { content:''; position:absolute; inset:0; pointer-events:none;
+  background-image:var(--bb-notches, none) }
+.bb-meta { text-align:center; font-family:var(--mono); font-size:11px; color:var(--text3); margin-top:7px }
 .obf { animation:obfuscate .3s steps(1) infinite }
 @keyframes obfuscate { 0%{opacity:1} 50%{opacity:.45} }
 CSS;
@@ -555,6 +571,12 @@ var ENCHANTS = <?= json_encode($ENCH_MAX) ?>;
 var TR_COLORS = <?= json_encode(gameColors()) ?>;
 var PARTICLES = <?= json_encode(gameParticles()) ?>;
 var PARTICLE_OPTS = <?= json_encode(gameParticleOptions()) ?>;
+var SOUNDS = <?= json_encode(gameSounds()) ?>;
+var TEAM_OPTIONS = <?= json_encode(gameTeamOptions()) ?>;
+var TEAM_VISIBILITY = <?= json_encode(gameTeamVisibility()) ?>;
+var TEAM_COLLISION = <?= json_encode(gameTeamCollision()) ?>;
+var BOSSBAR_COLORS = <?= json_encode(gameBossbarColors()) ?>;
+var BOSSBAR_STYLES = <?= json_encode(gameBossbarStyles()) ?>;
 var TASK = <?= json_encode($task) ?>;
 </script>
 <script src="assets/commands.js"></script>

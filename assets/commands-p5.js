@@ -425,4 +425,337 @@
     ptSyncOptions();
   });
 
+
+  /* ═══════════════════════════════════════════════
+     PLAYSOUND
+     ═══════════════════════════════════════════════ */
+
+  var psSelected = 'block.note_block.pling';
+
+  function psRenderList(filter) {
+    var list = el('ps-list');
+    if (!list) return;
+    var q = (filter || '').toLowerCase();
+    var html = '';
+    Object.keys(SOUNDS).forEach(function (group) {
+      var rows = Object.keys(SOUNDS[group]).filter(function (id) {
+        return !q || id.indexOf(q) !== -1 || SOUNDS[group][id].toLowerCase().indexOf(q) !== -1;
+      });
+      if (!rows.length) return;
+      html += '<div class="picker-group">' + esc(group) + '</div>';
+      html += rows.map(function (id) {
+        return '<div class="picker-item' + (id === psSelected ? ' sel' : '') + '" data-sound="' + esc(id) + '">' +
+          '<span>' + esc(SOUNDS[group][id]) + '</span><code>' + esc(id) + '</code></div>';
+      }).join('');
+    });
+    list.innerHTML = html || '<div class="picker-item muted">No sound matches that. Use the custom id box below.</div>';
+  }
+
+  C.register('playsound', function () {
+    var w = [];
+    var custom = v('ps-custom').trim();
+    var sound = custom || psSelected;
+    var source = v('ps-source') || 'master';
+    var target = v('ps-target');
+    var usePos = chk('ps-usepos');
+
+    var posRow = el('ps-pos-row');
+    if (posRow) posRow.hidden = !usePos;
+
+    if (!target) {
+      return { cmd: '', warnings: [{ level: 'error', text: 'Playsound needs a target — who should hear it. Use a player name or a selector like @a.' }] };
+    }
+
+    var parts = ['/playsound', sound, source, target];
+    var volume = Math.max(0, numf('ps-volume', 1));
+    var pitch = numf('ps-pitch', 1);
+    var min = Math.max(0, Math.min(1, numf('ps-min', 0)));
+    var pos = [v('ps-x') || '~', v('ps-y') || '~', v('ps-z') || '~'];
+
+    // Position must be present before volume, pitch or min can be given.
+    var needsTail = volume !== 1 || pitch !== 1 || min !== 0;
+    if (usePos || needsTail) {
+      if (!usePos && needsTail) {
+        w.push({ text: 'Volume, pitch and minimum volume can only be given after a position, so ' +
+          pos.join(' ') + ' has been filled in. Tick the position box above to choose it deliberately.' });
+      }
+      parts.push(pos.join(' '));
+    }
+    if (needsTail) {
+      parts.push(String(volume), String(pitch));
+      if (min !== 0) parts.push(String(min));
+    }
+
+    if (pitch < 0.5 || pitch > 2) {
+      w.push({ text: 'Pitch is clamped by the game to between 0.5 and 2, so ' + pitch + ' will behave as ' +
+        Math.max(0.5, Math.min(2, pitch)) + '.' });
+    }
+    if (volume > 1) {
+      w.push({ text: 'Volume above 1 does not make the sound louder — it widens how far it carries, to about ' +
+        Math.round(volume * 16) + ' blocks.' });
+    }
+    if (custom && !/^[a-z0-9_.\-:]+$/.test(custom)) {
+      w.push({ level: 'error', text: 'A sound id can only contain lower-case letters, numbers, dots, underscores and a namespace colon.' });
+    }
+    if (source === 'master') {
+      w.push({ text: 'The master category ignores the player\'s individual volume sliders. Pick a more specific one if that matters.' });
+    }
+    if (!MC.isJava()) {
+      w.push({ text: 'Bedrock accepts /playsound too, but its sound ids differ and it has no sound category argument.' });
+    }
+
+    return { cmd: parts.join(' '), warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('ps-list')) return;
+    psRenderList('');
+    el('ps-search').addEventListener('input', function () { psRenderList(this.value); });
+    el('ps-list').addEventListener('click', function (e) {
+      var row = e.target.closest('[data-sound]');
+      if (!row) return;
+      psSelected = row.dataset.sound;
+      el('ps-picked').textContent = 'minecraft:' + psSelected;
+      psRenderList(el('ps-search').value);
+      C.rebuild();
+      if (window.playSelect) playSelect();
+    });
+  });
+
+  /* ═══════════════════════════════════════════════
+     TEAM
+     ═══════════════════════════════════════════════ */
+
+  function tmRenderValue() {
+    var sel = el('tm-option');
+    var wrap = el('tm-value-wrap');
+    if (!sel || !wrap) return;
+    var opt = TEAM_OPTIONS[sel.value];
+    if (!opt) return;
+    el('tm-option-desc').textContent = opt.desc;
+
+    var html = '';
+    if (opt.type === 'bool') {
+      html = '<label class="check-row"><input type="checkbox" id="tm-value-bool"' +
+        (opt.default === 'true' ? ' checked' : '') + ' onchange="rebuild()"><span>Turn this on</span></label>' +
+        '<div class="hint">Default: ' + opt.default + '</div>';
+    } else if (opt.type === 'color') {
+      html = '<div class="field"><label>Colour</label><select id="tm-value-select" onchange="rebuild()">' +
+        Object.keys(TR_COLORS).map(function (c) {
+          return '<option value="' + c + '">' + c.replace(/_/g, ' ') + '</option>';
+        }).join('') + '<option value="reset">reset — no colour</option></select></div>';
+    } else if (opt.type === 'visibility' || opt.type === 'collision') {
+      var map = opt.type === 'visibility' ? TEAM_VISIBILITY : TEAM_COLLISION;
+      html = '<div class="field"><label>Value</label><select id="tm-value-select" onchange="rebuild()">' +
+        Object.keys(map).map(function (k) {
+          return '<option value="' + k + '"' + (k === opt.default ? ' selected' : '') + '>' + esc(map[k]) + '</option>';
+        }).join('') + '</select><div class="hint">Default: ' + opt.default + '</div></div>';
+    } else {
+      html = '<div class="field"><label>Text</label><input id="tm-value-text" placeholder="Shown to players" oninput="rebuild()"></div>';
+    }
+    wrap.innerHTML = html;
+  }
+
+  function tmSyncFields(op) {
+    var show = {
+      name:    op !== 'leave',
+      display: op === 'add',
+      members: op === 'join' || op === 'leave',
+      modify:  op === 'modify'
+    };
+    Object.keys(show).forEach(function (k) {
+      var box = document.querySelector('[data-team-field="' + k + '"]');
+      if (box) box.hidden = !show[k];
+    });
+    if (op === 'list') {
+      var n = document.querySelector('[data-team-field="name"]');
+      if (n) n.hidden = false;
+    }
+  }
+
+  C.register('team', function () {
+    var w = [];
+    var op = C.state.teamOp || 'add';
+    var name = v('tm-name').trim();
+    var members = v('tm-members').trim();
+    tmSyncFields(op);
+
+    if (op !== 'leave' && op !== 'list' && !name) {
+      return { cmd: '', warnings: [{ level: 'error', text: 'Give the team an id first — that is how every other command refers to it.' }] };
+    }
+    if (name && /\s/.test(name)) {
+      w.push({ level: 'error', text: 'A team id cannot contain spaces. Use the display name for anything with spaces in it.' });
+    }
+
+    if (op === 'list') {
+      return { cmd: '/team list' + (name ? ' ' + name : ''),
+               warnings: [{ text: name ? 'Lists the members of ' + name + '.' : 'Lists every team on the server.' }] };
+    }
+
+    if (op === 'add') {
+      var display = v('tm-display').trim();
+      var cmd = '/team add ' + name;
+      if (display) cmd += ' ' + JSON.stringify({ text: display });
+      w.push({ text: 'Creating a team does not put anyone in it. Use “Add players” next.' });
+      return { cmd: cmd, warnings: w };
+    }
+
+    if (op === 'remove') {
+      w.push({ level: 'warn', text: 'Deleting a team removes it for everyone in it. There is no undo.' });
+      return { cmd: '/team remove ' + name, warnings: w };
+    }
+
+    if (op === 'empty') {
+      w.push({ text: 'Removes every player from the team but keeps the team itself.' });
+      return { cmd: '/team empty ' + name, warnings: w };
+    }
+
+    if (op === 'join') {
+      if (!members) return { cmd: '', warnings: [{ level: 'error', text: 'Name the players to add, or use a selector like @a.' }] };
+      return { cmd: '/team join ' + name + ' ' + members, warnings: w };
+    }
+
+    if (op === 'leave') {
+      if (!members) return { cmd: '', warnings: [{ level: 'error', text: 'Name the players to remove, or use a selector like @a.' }] };
+      w.push({ text: '/team leave does not name a team — players leave whichever team they are on.' });
+      return { cmd: '/team leave ' + members, warnings: w };
+    }
+
+    // modify
+    var option = v('tm-option') || 'displayName';
+    var spec = TEAM_OPTIONS[option];
+    var value;
+    if (spec.type === 'bool') value = chk('tm-value-bool') ? 'true' : 'false';
+    else if (spec.type === 'color' || spec.type === 'visibility' || spec.type === 'collision') value = v('tm-value-select');
+    else {
+      var text = v('tm-value-text');
+      if (!text) return { cmd: '', warnings: [{ level: 'error', text: 'Enter the text for ' + spec.label.toLowerCase() + '.' }] };
+      value = JSON.stringify({ text: text });
+    }
+
+    if (option === 'color') w.push({ text: 'Team colour also decides the outline colour when members glow.' });
+    if (option === 'friendlyFire' && value === 'false') w.push({ text: 'Team mates still take splash and explosion damage from each other.' });
+
+    return { cmd: '/team modify ' + name + ' ' + option + ' ' + value, warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('tm-name')) return;
+    C.state.teamOp = 'add';
+    C.wirePills('team-op', 'teamOp');
+    var sel = el('tm-option');
+    if (sel) sel.addEventListener('change', function () { tmRenderValue(); C.rebuild(); });
+    tmRenderValue();
+    tmSyncFields('add');
+  });
+
+  /* ═══════════════════════════════════════════════
+     BOSS BAR
+     ═══════════════════════════════════════════════ */
+
+  function bbSyncFields(op) {
+    var show = {
+      id:     op !== 'list',
+      set:    op === 'set',
+      get:    op === 'get',
+      detail: op === 'add' || op === 'set'
+    };
+    Object.keys(show).forEach(function (k) {
+      var box = document.querySelector('[data-bb-field="' + k + '"]');
+      if (box) box.hidden = !show[k];
+    });
+  }
+
+  function bbPreview(title, color, style, value, max) {
+    var fill = el('bb-preview-fill');
+    if (!fill) return;
+    el('bb-preview-title').textContent = title || '(no title)';
+    var pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
+    fill.style.width = (pct * 100).toFixed(1) + '%';
+    fill.style.background = (BOSSBAR_COLORS[color] || {}).hex || '#e8c84a';
+
+    var segments = (BOSSBAR_STYLES[style] || {}).segments || 1;
+    var track = el('bb-preview-track');
+    track.style.setProperty('--bb-notches', segments > 1
+      ? 'repeating-linear-gradient(90deg, transparent, transparent calc(100%/' + segments +
+        ' - 2px), rgba(0,0,0,0.85) calc(100%/' + segments + ' - 2px), rgba(0,0,0,0.85) calc(100%/' + segments + '))'
+      : 'none');
+    el('bb-preview-meta').textContent = value + ' / ' + max + '  ·  ' + Math.round(pct * 100) + '%';
+  }
+
+  C.register('bossbar', function () {
+    var w = [];
+    var op = C.state.bbOp || 'add';
+    var id = v('bb-id').trim();
+    bbSyncFields(op);
+
+    var title = v('bb-title');
+    var color = v('bb-color') || 'yellow';
+    var style = v('bb-style') || 'progress';
+    var value = Math.max(0, Math.round(numf('bb-value', 0)));
+    var max = Math.max(1, Math.round(numf('bb-max', 1)));
+    bbPreview(title, color, style, value, max);
+
+    if (op === 'list') return { cmd: '/bossbar list', warnings: [{ text: 'Lists every boss bar that exists.' }] };
+
+    if (!id) {
+      return { cmd: '', warnings: [{ level: 'error', text: 'Give the boss bar an id — that is how you refer to it later.' }] };
+    }
+    if (/\s/.test(id)) {
+      w.push({ level: 'error', text: 'A boss bar id cannot contain spaces. Try something like minecraft:my_timer.' });
+    }
+    if (id.indexOf(':') === -1) {
+      w.push({ text: 'No namespace given, so the game will store this as minecraft:' + id + '.' });
+    }
+
+    if (op === 'add') {
+      if (!title) return { cmd: '', warnings: [{ level: 'error', text: 'A new boss bar needs a title — it is shown above the bar.' }] };
+      w.push({ text: 'A new bar starts hidden with value 0 and max 100. Set players, value and visibility next.' });
+      return { cmd: '/bossbar add ' + id + ' ' + JSON.stringify({ text: title }), warnings: w };
+    }
+
+    if (op === 'remove') {
+      w.push({ level: 'warn', text: 'Deleting a boss bar removes it from every screen immediately.' });
+      return { cmd: '/bossbar remove ' + id, warnings: w };
+    }
+
+    if (op === 'get') {
+      return { cmd: '/bossbar get ' + id + ' ' + (v('bb-get') || 'value'), warnings: w };
+    }
+
+    // set
+    var prop = v('bb-prop') || 'value';
+    if (prop === 'name') {
+      if (!title) return { cmd: '', warnings: [{ level: 'error', text: 'Enter a title to set.' }] };
+      return { cmd: '/bossbar set ' + id + ' name ' + JSON.stringify({ text: title }), warnings: w };
+    }
+    if (prop === 'value') {
+      if (value > max) w.push({ text: 'The value is above the maximum, so the bar will simply show as full.' });
+      return { cmd: '/bossbar set ' + id + ' value ' + value, warnings: w };
+    }
+    if (prop === 'max') {
+      return { cmd: '/bossbar set ' + id + ' max ' + max, warnings: w };
+    }
+    if (prop === 'color') {
+      return { cmd: '/bossbar set ' + id + ' color ' + color, warnings: w };
+    }
+    if (prop === 'style') {
+      return { cmd: '/bossbar set ' + id + ' style ' + style, warnings: w };
+    }
+    if (prop === 'visible') {
+      return { cmd: '/bossbar set ' + id + ' visible ' + (v('bb-visible') || 'true'), warnings: w };
+    }
+    // players
+    var players = v('bb-players').trim();
+    if (!players) w.push({ text: 'With nobody listed the bar is hidden from everyone until you set players again.' });
+    return { cmd: '/bossbar set ' + id + ' players' + (players ? ' ' + players : ''), warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('bb-id')) return;
+    C.state.bbOp = 'add';
+    C.wirePills('bb-op', 'bbOp');
+    bbSyncFields('add');
+  });
+
 })();
