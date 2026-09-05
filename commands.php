@@ -32,7 +32,33 @@ $TASKS = [
         'summon'     => ['👾', 'Summon', 'red'],
         'kill'       => ['💀', 'Kill',   'red'],
     ],
+    'Text & display' => [
+        'tellraw'    => ['💬', 'Tellraw',   'pink'],
+        'particle'   => ['✨', 'Particle',  'purple'],
+        'playsound'  => ['🔊', 'Playsound', 'orange'],
+        'bossbar'    => ['📛', 'Boss bar',  'red'],
+        'team'       => ['🏳️', 'Team',      'teal'],
+    ],
+    'Advanced' => [
+        'execute'    => ['⛓️', 'Execute',   'green'],
+        'attribute'  => ['📈', 'Attribute', 'blue'],
+        'data'       => ['🗂️', 'Data',      'gold'],
+    ],
 ];
+
+// Panels for the groups above live in lib/panels/<id>.php. Each partial
+// renders one `.panel` with the same helpers as the panels written inline
+// below, so they share the rail, version selector and command output.
+// A task only appears once its partial exists, so the rail is never a
+// dead link — the same rule nav.php uses for sections.
+$PANEL_PARTIALS = [];
+foreach (['Text & display', 'Advanced'] as $group) {
+    foreach (array_keys($TASKS[$group] ?? []) as $id) {
+        if (is_file(__DIR__ . '/lib/panels/' . $id . '.php')) $PANEL_PARTIALS[] = $id;
+        else unset($TASKS[$group][$id]);
+    }
+    if (empty($TASKS[$group])) unset($TASKS[$group]);
+}
 $valid = [];
 foreach ($TASKS as $g) $valid = array_merge($valid, array_keys($g));
 if (!in_array($task, $valid, true)) $task = 'give';
@@ -110,6 +136,43 @@ details.adv .adv-body { padding-top:12px }
 .rowitem button:hover { border-color:var(--red); color:var(--red) }
 .rule-desc { font-size:12px; color:var(--text3); line-height:1.55; margin-top:8px }
 .out-wrap { margin-top:18px }
+
+/* ── Segment editor (tellraw) ── */
+.seg-list { display:flex; flex-direction:column; gap:7px }
+.seg { border:1px solid var(--border); border-radius:var(--r-sm); background:var(--bg2); padding:8px 9px }
+.seg-main { display:flex; gap:6px; align-items:center; flex-wrap:wrap }
+.seg-main .seg-type { width:118px; flex-shrink:0 }
+.seg-main .seg-value { flex:1; min-width:130px }
+.seg-main .seg-extra { width:130px }
+.seg-main .seg-color { width:112px; flex-shrink:0 }
+.seg-styles { display:flex; gap:3px; flex-shrink:0 }
+.seg-style {
+  width:25px; height:29px; border:1px solid var(--border2); background:transparent;
+  color:var(--text3); border-radius:var(--r-xs); cursor:pointer;
+  font-family:var(--mono); font-size:11px; font-weight:700; transition:all .12s;
+}
+.seg-style:hover { border-color:var(--border3); color:var(--text2) }
+.seg-style.on { border-color:rgba(232,111,168,0.45); color:var(--pink); background:rgba(232,111,168,0.1) }
+.seg-del { width:27px; height:29px; border:1px solid var(--border2); background:transparent;
+  color:var(--text3); border-radius:var(--r-xs); cursor:pointer; flex-shrink:0 }
+.seg-del:hover { border-color:var(--red); color:var(--red) }
+.seg-adv > summary { cursor:pointer; list-style:none; font-size:11px; font-family:var(--mono);
+  letter-spacing:1px; text-transform:uppercase; color:var(--text3); margin-top:7px; user-select:none }
+.seg-adv > summary::-webkit-details-marker { display:none }
+.seg-adv > summary::before { content:'▸ '; }
+.seg-adv[open] > summary::before { content:'▾ '; }
+.seg-adv > summary:hover { color:var(--text2) }
+.seg-adv-body { padding-top:9px }
+
+/* ── Chat preview ── */
+.chat-preview {
+  font-family:var(--mono); font-size:14px; line-height:1.7; padding:13px 15px;
+  background:#0b0b0f; border:1px solid var(--border); border-radius:var(--r-sm);
+  min-height:46px; word-break:break-word;
+}
+.chat-empty { color:var(--text3); font-style:italic; font-size:13px }
+.obf { animation:obfuscate .3s steps(1) infinite }
+@keyframes obfuscate { 0%{opacity:1} 50%{opacity:.45} }
 CSS;
 
 ui_head('Commands', '', $css);
@@ -458,6 +521,12 @@ ui_head('Commands', '', $css);
     <div class="out-wrap"><?php ui_cmdout('out-kill', 'kill'); ?></div>
   </div>
 
+  <?php
+  foreach ($PANEL_PARTIALS as $partial) {
+      include __DIR__ . '/lib/panels/' . $partial . '.php';
+  }
+  ?>
+
   <?php echo ob_get_clean(); ?>
   </div>
 </div>
@@ -474,7 +543,9 @@ foreach ($ENCHANTS as $list) {
 ksort($ENCH_MAX);
 ?>
 var ENCHANTS = <?= json_encode($ENCH_MAX) ?>;
+var TR_COLORS = <?= json_encode(gameColors()) ?>;
 var TASK = <?= json_encode($task) ?>;
 </script>
 <script src="assets/commands.js"></script>
+<script src="assets/commands-p5.js"></script>
 <?php ui_foot(); ?>

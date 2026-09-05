@@ -137,6 +137,9 @@
   }
 
   /* ═══════════ BUILDERS ═══════════ */
+  // B maps a task id to a function returning { cmd, warnings }.
+  // Builders defined in other files register into the same map through
+  // window.CMD, so there is one rebuild loop and one contract.
   var B = {};
 
   B.give = function () {
@@ -439,6 +442,23 @@
   };
 
   /* ═══════════ INIT ═══════════ */
+  /* ═══════════ EXTENSION API ═══════════
+     Additional builder files (assets/commands-*.js) register through this
+     rather than re-implementing state, pills or the rebuild loop. */
+  var initHooks = [];
+
+  window.CMD = {
+    /** Register a builder. fn() must return { cmd, warnings }. */
+    register: function (task, fn) { B[task] = fn; },
+    /** Run once on DOMContentLoaded, after the core builders are wired. */
+    onInit: function (fn) { initHooks.push(fn); },
+    state: state,
+    el: el, v: v, chk: chk, num: num, clamp: clamp, bedrock: bedrock,
+    wirePills: wirePills,
+    buildChips: buildChips,
+    rebuild: function () { rebuild(); }
+  };
+
   document.addEventListener('DOMContentLoaded', function () {
     initGive();
     buildChips('gm-target-chips', 'gm-target');
@@ -490,6 +510,11 @@
 
     // The version picker rebuilds version-filtered selects, then this.
     document.addEventListener('mc:version', function () { renderRuleValue(); });
+
+    initHooks.forEach(function (fn) {
+      try { fn(); }
+      catch (err) { console.error('builder init failed:', err); }
+    });
 
     if (typeof TASK === 'string') {
       MC.remember({ type: 'tool', icon: '⚡', title: 'Commands — ' + TASK, href: 'commands.php?t=' + TASK });
