@@ -1,1 +1,4 @@
-data/
+# The SQLite fallback database, at the project root only.
+# Anchored with a leading slash: an unanchored "data/" also matches
+# lib/data/, which silently excluded the whole content library.
+/data/
