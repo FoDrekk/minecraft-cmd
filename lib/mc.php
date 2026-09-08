@@ -118,7 +118,10 @@ const MC_FEATURES = [
     'tooltip_display'   => 70,  // 1.21.5+  tooltip_display component
     'flat_enchantments' => 70,  // 1.21.5+  enchantments={id:lvl}
     'transfer_command'  => 55,  // 1.20.5+ /transfer
-    'sign_front_back'   => 30,  // 1.20+   front_text / back_text
+    // Signs gained double-sided text (front_text / back_text) in 1.20; the
+    // 1.19.4 and earlier block entity format is flat Text1-Text4 + GlowingText.
+    // Rank 40 is 1.20.4, the oldest 1.20.x version in our table.
+    'sign_front_back'   => 40,  // 1.20+   front_text / back_text
     'locate_biome'      => 30,  // 1.19+   /locate biome
     'attribute_command' => 40,  // 1.20.3+ /attribute (kept conservative)
 
