@@ -1,6 +1,6 @@
 // /execute chain builder — chain assembly, ordering, validation and the
 // plain-language summary (which comes from the Command Explainer).
-import { chromium } from 'playwright';
+import { launchChromium } from './_launch.mjs';
 
 const BASE = process.env.MCCMD_BASE || 'http://127.0.0.1:8899';
 let pass = 0, fail = 0;
@@ -9,7 +9,7 @@ const check = (n, a, e) => (a === e ? pass++ : (fail++, failures.push(`${n}\n   
 const has = (n, h, s) => (String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    expected to contain: ${s}\n    actual: ${h}`)));
 const hasNot = (n, h, s) => (!String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    should NOT contain: ${s}\n    actual: ${h}`)));
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const page = await browser.newPage();
 page.setDefaultTimeout(15000);
 await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());

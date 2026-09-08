@@ -296,9 +296,21 @@ function buildSign() {
   // Block entity data stays in braces on every version — components are
   // for items. What did change in 1.21.5 is how the messages themselves
   // are written, which MC.nbtText handles.
-  const nbt = MC.snbt({
-    front_text: { messages: lines, has_glowing_text: MC.byte(glow === 'true' || glow === true || glow === '1' ? 1 : 0) }
-  });
+  //
+  // Signs only gained double-sided text (front_text/back_text, one side
+  // per player-facing surface) in 1.20. On 1.19.4 and earlier the block
+  // entity is flat: Text1-Text4 plus a top-level GlowingText byte — there
+  // is no front_text wrapper at all.
+  const glowByte = MC.byte(glow === 'true' || glow === true || glow === '1' ? 1 : 0);
+  let nbt;
+  if (MC.has('sign_front_back')) {
+    nbt = MC.snbt({ front_text: { messages: lines, has_glowing_text: glowByte } });
+  } else {
+    const flat = {};
+    lines.forEach((line, i) => { flat['Text' + (i + 1)] = line; });
+    flat.GlowingText = glowByte;
+    nbt = MC.snbt(flat);
+  }
   const cmd = `/setblock ${x} ${y} ${z} ${signType}${nbt}`;
   document.getElementById('sign-output').textContent = cmd;
 }

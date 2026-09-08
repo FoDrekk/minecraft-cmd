@@ -77,6 +77,11 @@ function registry_tools(): array
          'desc' => 'Remove entities by selector — with safety checks',
          'keywords' => 'kill remove entities despawn clear mobs delete items lag'],
 
+        ['id' => 'tag', 'icon' => '🏷️', 'title' => 'Tag', 'cat' => 'command',
+         'href' => 'commands.php?t=tag', 'accent' => 'teal',
+         'desc' => 'Add, remove or list scoreboard tags on an entity',
+         'keywords' => 'tag tags add remove list mark entity selector quest_done scoreboard'],
+
         ['id' => 'tellraw', 'icon' => '💬', 'title' => 'Tellraw', 'cat' => 'command',
          'href' => 'commands.php?t=tellraw', 'accent' => 'pink',
          'desc' => 'Formatted chat messages with colours, links and hover text',

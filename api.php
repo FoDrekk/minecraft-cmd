@@ -23,12 +23,19 @@ function err(string $msg) {
 function sanitize(string $s, int $max = 500): string {
     return mb_substr(trim(strip_tags($s)), 0, $max);
 }
+// Minecraft commands legitimately contain '<' and '>' (tellraw JSON, scoreboard
+// display names, selector arguments, …). strip_tags() would silently mangle
+// that content, so command text is only trimmed and length-capped here —
+// output is escaped with e() wherever it is rendered as HTML (see mystuff.php).
+function sanitizeCommand(string $s, int $max = 2000): string {
+    return mb_substr(trim($s), 0, $max);
+}
 
 switch ($action) {
 
     // ── HISTORY ──────────────────────────────
     case 'history_add':
-        $cmd = sanitize($_POST['command'] ?? '', 2000);
+        $cmd = sanitizeCommand($_POST['command'] ?? '', 2000);
         $tab = sanitize($_POST['tab'] ?? 'give', 30);
         $ver = sanitize($_POST['version'] ?? mcCurrentVersion(), 20);
         if (!$cmd) err('Empty command');
@@ -50,7 +57,7 @@ switch ($action) {
 
     // ── FAVOURITES ────────────────────────────
     case 'fav_add':
-        $cmd  = sanitize($_POST['command'] ?? '', 2000);
+        $cmd  = sanitizeCommand($_POST['command'] ?? '', 2000);
         $tab  = sanitize($_POST['tab'] ?? 'give', 30);
         $note = sanitize($_POST['note'] ?? '', 255);
         if (!$cmd) err('Empty command');

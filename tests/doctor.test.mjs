@@ -1,5 +1,5 @@
 // Tests for Command Doctor and the Explainer, driven through the real page.
-import { chromium } from 'playwright';
+import { launchChromium } from './_launch.mjs';
 
 const BASE = process.env.MCCMD_BASE || 'http://127.0.0.1:8899';
 let pass = 0, fail = 0;
@@ -8,7 +8,7 @@ const check = (n, a, e) => (a === e ? pass++ : (fail++, failures.push(`${n}\n   
 const has = (n, h, s) => (String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    expected to contain: ${s}\n    actual: ${String(h).slice(0, 300)}`)));
 const hasNot = (n, h, s) => (!String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    should NOT contain: ${s}`)));
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const page = await browser.newPage();
 page.on('pageerror', e => { fail++; failures.push('PAGE ERROR: ' + e.message); });
 
