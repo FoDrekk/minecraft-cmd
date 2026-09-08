@@ -258,6 +258,19 @@ let generatedCmds = [];
 
 function v(id){ return document.getElementById(id)?.value?.trim()||'' }
 
+// The displayName / displayname argument on /scoreboard is a JSON text
+// component, not a plain string — Minecraft parses it the same way it
+// parses /tellraw's message. A bare word like "Kills" must become the
+// JSON string "Kills", and JSON the player already typed (plain or
+// coloured) must be passed through unwrapped, never re-quoted, or the
+// server sees invalid double-quoted JSON like "{"text":"Kills"}".
+function sbComponentArg(raw){
+  raw = (raw||'').trim();
+  if(!raw) return '';
+  try { return JSON.stringify(JSON.parse(raw)); }
+  catch(e) { return JSON.stringify(raw); }
+}
+
 function setMode(mode, btn) {
   curMode = mode;
   document.querySelectorAll('.mtab').forEach(b=>b.classList.remove('active'));
@@ -273,13 +286,15 @@ function buildSb() {
   if(curMode==='create') {
     const name = v('obj-name'), crit = v('obj-criteria'), disp = v('obj-display');
     if(name) {
-      cmds.push(`/scoreboard objectives add ${name} ${crit}${disp?' "'+disp+'"':''}`);
+      const dispArg = sbComponentArg(disp);
+      cmds.push(`/scoreboard objectives add ${name} ${crit}${dispArg?' '+dispArg:''}`);
       cmds.push(`/scoreboard objectives setdisplay sidebar ${name}`);
     }
   } else if(curMode==='display') {
     const obj = v('disp-obj'), slot = v('disp-slot'), title = v('disp-title');
     if(obj) {
-      if(title) cmds.push(`/scoreboard objectives modify ${obj} displayname ${title}`);
+      const titleArg = sbComponentArg(title);
+      if(titleArg) cmds.push(`/scoreboard objectives modify ${obj} displayname ${titleArg}`);
       cmds.push(`/scoreboard objectives setdisplay ${slot} ${obj}`);
     }
   } else if(curMode==='score') {
@@ -365,7 +380,8 @@ function loadSbPreset(key) {
   const allCmds = [];
   steps.forEach(s=>{
     if(s.mode==='create') {
-      allCmds.push(`/scoreboard objectives add ${s.obj} ${s.crit} "${s.disp}"`);
+      const dispArg = sbComponentArg(s.disp);
+      allCmds.push(`/scoreboard objectives add ${s.obj} ${s.crit}${dispArg?' '+dispArg:''}`);
       allCmds.push(`/scoreboard objectives setdisplay sidebar ${s.obj}`);
     } else if(s.mode==='display') {
       allCmds.push(`/scoreboard objectives setdisplay ${s.slot} ${s.obj}`);
