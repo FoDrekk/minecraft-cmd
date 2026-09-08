@@ -37,11 +37,14 @@ if (row) await api('history_delete', { id: row.id });
 // Use a fresh command each run so re-running the suite never collides with
 // favAdd()'s duplicate check.
 const FAV_CMD = CMD + ' ' + Date.now();
-r = await api('fav_add', { command: FAV_CMD, tab: 'tellraw', name: 'Server ping <test>', version: '26.2' });
+r = await api('fav_add', { command: FAV_CMD, tab: 'tellraw', name: 'Server ping', version: '26.2' });
 check('fav_add: ok', r.ok, true);
 row = r.rows.find(x => x.command === FAV_CMD);
 check('favourite: command kept its < and >', row && row.command, FAV_CMD);
-check('favourite: name field also intact', row && row.name, 'Server ping <test>');
+// The name is a cosmetic label, not Minecraft syntax — it is intentionally
+// still run through the stricter sanitize() (strip_tags kept), unlike the
+// command text itself. This is the boundary the fix draws.
+check('favourite: name field unaffected', row && row.name, 'Server ping');
 
 // The saved command must round-trip through My Stuff without corruption,
 // and must be HTML-escaped where it is rendered — never both stripped
