@@ -11,7 +11,7 @@ $history = historyGet(6);
 $saved   = favGet();
 
 // The eight things players reach for most.
-$quickIds = ['give', 'fill', 'doctor', 'gamemode', 'palette', 'farms', 'tips', 'ideas'];
+$quickIds = ['give', 'enchantments', 'fill', 'doctor', 'palette', 'farms', 'tips', 'ideas'];
 $byId     = [];
 foreach (registry_tools() as $t) $byId[$t['id']] = $t;
 
