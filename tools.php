@@ -7,7 +7,6 @@ require_once __DIR__ . '/lib/registry.php';
 
 $groups = [
     'command' => ['Commands',       'Task-based builders for the commands players use most.'],
-    'enchant' => ['Enchantment Hub', 'Select an item, see recommended enchantments, check conflicts, and generate the /give command.'],
     'build'   => ['Build tools',    'Areas, coordinates and the block-placing commands.'],
     'doctor'  => ['Fix & explain',  'Paste a command in and find out what is wrong with it.'],
     'tool'    => ['Item & display', 'Custom items, text, fireworks and scoreboards.'],
