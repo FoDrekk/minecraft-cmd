@@ -1,7 +1,7 @@
 // The pre-existing generators, checked across syntax eras.
 // These used to emit legacy NBT unconditionally, which is rejected
 // from 1.20.5 onward — the default version.
-import { chromium } from 'playwright';
+import { launchChromium } from './_launch.mjs';
 
 const BASE = process.env.MCCMD_BASE || 'http://127.0.0.1:8899';
 let pass = 0, fail = 0;
@@ -9,7 +9,7 @@ const failures = [];
 const check = (n, a, e) => (a === e ? pass++ : (fail++, failures.push(`${n}\n    expected: ${e}\n    actual:   ${a}`)));
 const has = (n, h, s) => (String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    expected to contain: ${s}\n    actual: ${h}`)));
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const page = await browser.newPage();
 page.setDefaultTimeout(15000);
 page.setDefaultNavigationTimeout(15000);
@@ -67,7 +67,24 @@ has('sign 26.2: SNBT messages', cmd, '{text:"Welcome"}');
 
 await setVersion('1.20.4');
 cmd = await out('#sign-output');
+has('sign 1.20.4: front_text block entity data', cmd, '{front_text:{messages:[');
 has('sign 1.20.4: JSON-string messages', cmd, '\'{"text":"Welcome"}\'');
+
+// 1.19.4 predates front_text/back_text (added in 1.20) — the block entity
+// is flat Text1-Text4 plus a top-level GlowingText byte.
+await setVersion('1.19.4');
+cmd = await out('#sign-output');
+has('sign 1.19.4: flat Text1 field', cmd, 'Text1:\'{"text":"Welcome"}\'');
+has('sign 1.19.4: flat Text2-4 present', cmd, 'Text2:\'{"text":""}\'');
+has('sign 1.19.4: GlowingText byte', cmd, 'GlowingText:0b');
+check('sign 1.19.4: no front_text wrapper', cmd.includes('front_text'), false);
+
+await page.selectOption('#sg-glow', 'true');
+await page.waitForTimeout(80);
+cmd = await out('#sign-output');
+has('sign 1.19.4: glowing sets GlowingText:1b', cmd, 'GlowingText:1b');
+await page.selectOption('#sg-glow', 'false');
+await page.waitForTimeout(80);
 
 // ── FIREWORK ────────────────────────────────────
 await page.goto(`${BASE}/firework.php`, { waitUntil: 'domcontentloaded' });

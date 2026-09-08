@@ -1,6 +1,6 @@
 // Browser tests for the command builders.
 // Run with:  node tests/commands.test.mjs  (a PHP server must be on :8899)
-import { chromium } from 'playwright';
+import { launchChromium } from './_launch.mjs';
 
 const BASE = process.env.MCCMD_BASE || 'http://127.0.0.1:8899';
 let pass = 0, fail = 0;
@@ -18,7 +18,7 @@ function checkIncludes(name, haystack, needle) {
   else { fail++; failures.push(`${name}\n    expected to contain: ${needle}\n    actual: ${haystack}`); }
 }
 
-const browser = await chromium.launch();
+const browser = await launchChromium();
 const page = await browser.newPage();
 page.on('pageerror', e => { fail++; failures.push('PAGE ERROR: ' + e.message); });
 
