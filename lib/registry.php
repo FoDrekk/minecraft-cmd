@@ -122,6 +122,11 @@ function registry_tools(): array
          'desc' => 'Read and edit the NBT behind an entity, block or storage',
          'keywords' => 'data nbt get merge modify remove storage entity block tag path edit inspect'],
 
+        ['id' => 'enchantments', 'icon' => '✨', 'title' => 'Enchantment Hub', 'cat' => 'enchant',
+         'href' => 'enchantments.php', 'accent' => 'gold',
+         'desc' => 'Select an item, see recommended enchantments, check conflicts, and generate the command',
+         'keywords' => 'enchant enchantment enchanting hub sword pickaxe bow trident sharpness looting mending unbreaking fortune silk touch conflict best enchants'],
+
         // ── Build ─────────────────────────────────
         ['id' => 'fill', 'icon' => '🧱', 'title' => 'Fill Area', 'cat' => 'build',
          'href' => 'build.php?t=fill', 'accent' => 'green',

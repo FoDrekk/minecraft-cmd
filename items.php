@@ -4,7 +4,7 @@ $ITEMS = [
     ['wooden_sword','Wooden Sword'],['stone_sword','Stone Sword'],
     ['iron_sword','Iron Sword'],['golden_sword','Golden Sword'],
     ['diamond_sword','Diamond Sword'],['netherite_sword','Netherite Sword'],
-    ['bow','Bow'],['crossbow','Crossbow'],['trident','Trident'],
+    ['bow','Bow'],['crossbow','Crossbow'],['trident','Trident'],['mace','Mace'],
     ['arrow','Arrow'],['spectral_arrow','Spectral Arrow'],
   ],
   'Tools' => [
@@ -77,5 +77,15 @@ $ENCHANTS = [
   'Leggings'=> [['protection',4],['fire_protection',4],['blast_protection',4],['projectile_protection',4],['thorns',3],['swift_sneak',3],['unbreaking',3],['mending',1]],
   'Boots'   => [['protection',4],['fire_protection',4],['feather_falling',4],['depth_strider',3],['frost_walker',2],['soul_speed',3],['thorns',3],['unbreaking',3],['mending',1]],
   'Trident' => [['channeling',1],['loyalty',3],['impaling',5],['riptide',3],['unbreaking',3],['mending',1]],
+  'Hoe'        => [['efficiency',5],['unbreaking',3],['mending',1]],
+  'Fishing Rod'=> [['luck_of_the_sea',3],['lure',3],['unbreaking',3],['mending',1]],
+  'Shield'     => [['unbreaking',3],['mending',1]],
+  'Elytra'     => [['unbreaking',3],['mending',1]],
+  // Mace was added in Java 1.21 ("Tricky Trials"). Density, Breach and Wind
+  // Burst are mace-exclusive; Smite/Bane of Arthropods apply but Sharpness
+  // does not. See lib/data/enchantments.php for the version gate and the
+  // conflict group (density/breach/smite/bane_of_arthropods are mutually
+  // exclusive on a mace).
+  'Mace'       => [['density',5],['breach',4],['wind_burst',3],['smite',5],['bane_of_arthropods',5],['fire_aspect',2],['unbreaking',3],['mending',1]],
 ];
 ?>

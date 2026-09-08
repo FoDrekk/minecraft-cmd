@@ -10,7 +10,7 @@ $currentPage = basename($_SERVER['PHP_SELF'], '.php');
 // keep the section highlighted.
 $nav = [
     ['index',     '🏠', 'Home',      []],
-    ['tools',     '🧰', 'Tools',     ['commands', 'kit', 'sequencer', 'nbt', 'title', 'firework', 'scoreboard', 'sign', 'book']],
+    ['tools',     '🧰', 'Tools',     ['commands', 'kit', 'sequencer', 'nbt', 'title', 'firework', 'scoreboard', 'sign', 'book', 'enchantments']],
     ['build',     '🧱', 'Build',     []],
     ['knowledge', '📚', 'Knowledge', []],
     ['farms',     '🌾', 'Farms',     []],
