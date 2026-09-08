@@ -31,6 +31,7 @@ $TASKS = [
     'Entities' => [
         'summon'     => ['👾', 'Summon', 'red'],
         'kill'       => ['💀', 'Kill',   'red'],
+        'tag'        => ['🏷️', 'Tag',    'teal'],
     ],
     'Text & display' => [
         'tellraw'    => ['💬', 'Tellraw',   'pink'],
@@ -59,6 +60,11 @@ foreach (['Text & display', 'Advanced'] as $group) {
     }
     if (empty($TASKS[$group])) unset($TASKS[$group]);
 }
+// 'summon' and 'kill' are written inline below rather than as partials, so
+// 'Entities' is not fully partial-driven — check its partial-backed tasks
+// (like 'tag') individually instead of scanning the whole group.
+if (is_file(__DIR__ . '/lib/panels/tag.php')) $PANEL_PARTIALS[] = 'tag';
+else unset($TASKS['Entities']['tag']);
 $valid = [];
 foreach ($TASKS as $g) $valid = array_merge($valid, array_keys($g));
 if (!in_array($task, $valid, true)) $task = 'give';

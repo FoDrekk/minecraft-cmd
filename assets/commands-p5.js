@@ -650,6 +650,47 @@
   });
 
   /* ═══════════════════════════════════════════════
+     TAG
+     ═══════════════════════════════════════════════ */
+
+  function tagSyncFields(op) {
+    var box = document.querySelector('[data-tag-field="name"]');
+    if (box) box.hidden = (op === 'list');
+  }
+
+  C.register('tag', function () {
+    var w = [];
+    var op = C.state.tagOp || 'add';
+    var target = v('tag-target').trim() || '@s';
+    var name = v('tag-name').trim();
+    tagSyncFields(op);
+
+    if (op === 'list') {
+      return { cmd: '/tag ' + target + ' list', warnings: [{ text: 'Lists every tag ' + target + ' currently has.' }] };
+    }
+
+    if (!name) {
+      return { cmd: '', warnings: [{ level: 'error', text: 'Enter a tag name first.' }] };
+    }
+    if (/\s/.test(name)) {
+      w.push({ level: 'error', text: 'A tag cannot contain spaces. Use underscores instead, e.g. quest_done.' });
+    }
+
+    if (op === 'remove') {
+      w.push({ text: 'Removing a tag does nothing if the target never had it — there is no error either way.' });
+    }
+
+    return { cmd: '/tag ' + target + ' ' + op + ' ' + name, warnings: w };
+  });
+
+  C.onInit(function () {
+    if (!el('tag-target')) return;
+    C.state.tagOp = 'add';
+    C.wirePills('tag-op', 'tagOp');
+    tagSyncFields('add');
+  });
+
+  /* ═══════════════════════════════════════════════
      BOSS BAR
      ═══════════════════════════════════════════════ */
 
