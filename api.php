@@ -146,6 +146,29 @@ switch ($action) {
         paletteDelete($id);
         ok(['rows' => paletteGet()]);
 
+    // ── SAVED BUILDS ───────────────────────────
+    case 'build_save':
+        require_once __DIR__ . '/lib/data/ideas.php';
+        require_once __DIR__ . '/lib/data/palettes.php';
+        $name    = sanitize($_POST['name'] ?? '', 100);
+        $ideaId  = sanitize($_POST['idea'] ?? '', 60);
+        $paletteId = sanitize($_POST['palette'] ?? '', 60);
+        $note    = sanitize($_POST['note'] ?? '', 255);
+        if (!$name) err('Give the build a name first');
+        if (!isset(ideasAll()[$ideaId])) err('Unknown build idea');
+        if ($paletteId && !isset(palettePresets()[$paletteId])) $paletteId = '';
+        buildSave($name, $ideaId, $paletteId ?: null, $note);
+        ok(['rows' => buildGet()]);
+
+    case 'build_get':
+        ok(['rows' => buildGet()]);
+
+    case 'build_delete':
+        $id = (int)($_POST['id'] ?? 0);
+        if (!$id) err('Invalid ID');
+        buildDelete($id);
+        ok(['rows' => buildGet()]);
+
     // ── COMMAND DOCTOR ────────────────────────
     case 'doctor':
         require_once __DIR__ . '/lib/doctor.php';
@@ -176,8 +199,25 @@ switch ($action) {
         require_once __DIR__ . '/lib/data/tips.php';
         require_once __DIR__ . '/lib/data/palettes.php';
         require_once __DIR__ . '/lib/data/challenges.php';
+        require_once __DIR__ . '/lib/data/enchantments.php';
 
         $pool = [];
+
+        // Pick a random enchantable item, then one of its real recommended
+        // enchantments — same data the Enchantment Hub itself uses.
+        $ie = itemsData();
+        $enchItems = array_values(array_filter($ie['flat'], fn($it) => enchantSlotForItem($it[0]) !== null));
+        if ($enchItems) {
+            [$eItemId, $eItemName] = $enchItems[array_rand($enchItems)];
+            $recs = enchantRecommended($eItemId);
+            if ($recs) {
+                $recId = $recs[array_rand($recs)];
+                $meta  = enchantMeta()[$recId];
+                $pool[] = ['kind' => 'Enchantment', 'title' => $meta['name'] . ' on ' . $eItemName,
+                           'body' => $meta['desc'],
+                           'href' => 'enchantments.php?item=' . rawurlencode($eItemId)];
+            }
+        }
 
         $ideaId = array_rand(ideasAll());
         $idea   = ideasAll()[$ideaId];

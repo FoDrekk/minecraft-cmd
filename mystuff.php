@@ -6,14 +6,16 @@ require_once __DIR__ . '/db.php';
 require_once __DIR__ . '/lib/ui.php';
 require_once __DIR__ . '/lib/data/palettes.php';
 require_once __DIR__ . '/lib/data/blocks.php';
+require_once __DIR__ . '/lib/data/ideas.php';
 
 $tab = $_GET['t'] ?? 'library';
-if (!in_array($tab, ['library', 'history', 'palettes', 'kits'], true)) $tab = 'library';
+if (!in_array($tab, ['library', 'history', 'palettes', 'kits', 'builds'], true)) $tab = 'library';
 
 $saved    = favGet();
 $history  = historyGet(60);
 $palettes = paletteGet();
 $kits     = kitGet();
+$builds   = buildGet();
 $status   = dbStatus();
 
 $categories = ['Starter', 'Admin', 'Building', 'Farms', 'Redstone', 'Effects', 'Fun', 'Map making'];
@@ -86,6 +88,7 @@ function ms_entry(array $row, string $kind): void
     <a class="ms-tab <?= $tab === 'history' ? 'active' : '' ?>" href="mystuff.php?t=history">🕘 History<span class="n"><?= count($history) ?></span></a>
     <a class="ms-tab <?= $tab === 'palettes' ? 'active' : '' ?>" href="mystuff.php?t=palettes">🎨 Palettes<span class="n"><?= count($palettes) ?></span></a>
     <a class="ms-tab <?= $tab === 'kits' ? 'active' : '' ?>" href="mystuff.php?t=kits">🎒 Kits<span class="n"><?= count($kits) ?></span></a>
+    <a class="ms-tab <?= $tab === 'builds' ? 'active' : '' ?>" href="mystuff.php?t=builds">🏗️ Builds<span class="n"><?= count($builds) ?></span></a>
   </div>
 
 <?php if ($tab === 'library'): ?>
@@ -148,7 +151,7 @@ function ms_entry(array $row, string $kind): void
     </div>
   <?php endif; ?>
 
-<?php else: ?>
+<?php elseif ($tab === 'kits'): ?>
   <?php if (!$kits): ?>
     <?= ui_empty('🎒', 'No saved kits', 'Build a loadout in the Kit Builder and save it there.') ?>
   <?php else: foreach ($kits as $k): ?>
@@ -163,13 +166,33 @@ function ms_entry(array $row, string $kind): void
       <div class="entry-note"><?= e($k['updated_at'] ?? '') ?></div>
     </div>
   <?php endforeach; endif; ?>
+
+<?php else: /* builds */ ?>
+  <?php if (!$builds): ?>
+    <?= ui_empty('🏗️', 'No saved builds', 'Open a Build Idea in Knowledge and use "Save to My Stuff".') ?>
+  <?php else: $allIdeas = ideasAll(); $allPalettes = palettePresets(); foreach ($builds as $bd): $idea = $allIdeas[$bd['idea_id']] ?? null; $pal = $bd['palette_id'] ? ($allPalettes[$bd['palette_id']] ?? null) : null; ?>
+    <div class="entry">
+      <div class="entry-top">
+        <span class="entry-name"><?= $idea ? $idea['icon'] . ' ' : '' ?><?= e($bd['build_name']) ?></span>
+        <?php if ($idea): ?><span class="tag"><?= e($idea['category']) ?></span><?php endif; ?>
+        <?php if ($pal): ?><span class="tag"><?= e($pal['name']) ?></span><?php endif; ?>
+        <span class="entry-actions">
+          <?php if ($idea): ?><a class="entry-btn" style="text-decoration:none" href="knowledge.php?t=ideas&idea=<?= e($bd['idea_id']) ?>">Open build →</a><?php endif; ?>
+          <button class="entry-btn danger" data-del-build="<?= (int)$bd['id'] ?>">✕</button>
+        </span>
+      </div>
+      <?php if ($idea): ?><div class="entry-note"><?= e($idea['title']) ?> — <?= e($idea['size']) ?></div><?php endif; ?>
+      <?php if (!$idea): ?><div class="entry-note" style="color:var(--red)">This idea no longer exists in the catalogue.</div><?php endif; ?>
+      <div class="entry-note" style="font-family:var(--mono);font-size:10.5px"><?= e($bd['created_at'] ?? '') ?></div>
+    </div>
+  <?php endforeach; endif; ?>
 <?php endif; ?>
 
   <div class="db-note">
     <?php if ($status['connected']): ?>
       Stored in <?= e($status['driver'] === 'sqlite' ? 'a local SQLite file (data/minecraft_cmd.sqlite)' : 'MySQL') ?>.
       <?= (int)$status['history'] ?> in history, <?= (int)$status['favourites'] ?> saved,
-      <?= (int)$status['kits'] ?> kits, <?= (int)$status['palettes'] ?> palettes.
+      <?= (int)$status['kits'] ?> kits, <?= (int)$status['palettes'] ?> palettes, <?= (int)($status['builds'] ?? 0) ?> builds.
     <?php else: ?>
       <?= ui_warn(e($status['error'] ?? 'The database is not available, so nothing can be saved right now.'), 'error') ?>
     <?php endif; ?>

@@ -66,6 +66,14 @@
         return;
       }
 
+      var delBuild = e.target.closest('[data-del-build]');
+      if (delBuild) {
+        if (!confirm('Delete this saved build?')) return;
+        MC.api('build_delete', { id: delBuild.dataset.delBuild })
+          .then(function () { delBuild.closest('.entry').remove(); });
+        return;
+      }
+
       var saveFav = e.target.closest('[data-save-fav]');
       if (saveFav) {
         MC.api('fav_add', { command: saveFav.dataset.saveFav, tab: saveFav.dataset.tab || 'cmd' })

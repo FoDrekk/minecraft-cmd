@@ -125,6 +125,20 @@ function dbEnsureSchema(PDO $db): void
             UNIQUE (username, palette_name)
         )$eng");
 
+        // Saved builds (Knowledge → Build Ideas) — an idea plus the
+        // palette the player picked for it, so "My Stuff" remembers
+        // which build they were planning and with what materials.
+        $db->exec("CREATE TABLE IF NOT EXISTS user_builds (
+            id $pk,
+            username VARCHAR(50) NOT NULL DEFAULT 'nizkbiits',
+            build_name VARCHAR(100) NOT NULL,
+            idea_id VARCHAR(60) NOT NULL,
+            palette_id VARCHAR(60) DEFAULT NULL,
+            note VARCHAR(255) DEFAULT NULL,
+            created_at $now,
+            UNIQUE (username, build_name)
+        )$eng");
+
         // Columns added after the first release
         dbAddColumn($db, 'favourites',      'name',       "VARCHAR(120) DEFAULT NULL");
         dbAddColumn($db, 'favourites',      'category',   "VARCHAR(40) DEFAULT NULL");
@@ -396,6 +410,48 @@ function paletteDelete(int $id): bool
     } catch (PDOException $e) { return false; }
 }
 
+// ── SAVED BUILDS ──────────────────────────────
+function buildSave(string $name, string $ideaId, ?string $paletteId, string $note = ''): bool
+{
+    $db = getDB(); if (!$db) return false;
+    try {
+        if (dbDriver($db) === 'sqlite') {
+            $stmt = $db->prepare(
+                'INSERT INTO user_builds (username, build_name, idea_id, palette_id, note) VALUES (?,?,?,?,?)
+                 ON CONFLICT(username, build_name) DO UPDATE SET idea_id=excluded.idea_id, palette_id=excluded.palette_id, note=excluded.note'
+            );
+        } else {
+            $stmt = $db->prepare(
+                'INSERT INTO user_builds (username, build_name, idea_id, palette_id, note) VALUES (?,?,?,?,?)
+                 ON DUPLICATE KEY UPDATE idea_id=VALUES(idea_id), palette_id=VALUES(palette_id), note=VALUES(note)'
+            );
+        }
+        return $stmt->execute([APP_USER, $name, $ideaId, $paletteId ?: null, $note ?: null]);
+    } catch (PDOException $e) { return false; }
+}
+
+function buildGet(): array
+{
+    $db = getDB(); if (!$db) return [];
+    try {
+        $stmt = $db->prepare(
+            'SELECT id, build_name, idea_id, palette_id, note, created_at FROM user_builds
+             WHERE username=? ORDER BY created_at DESC'
+        );
+        $stmt->execute([APP_USER]);
+        return $stmt->fetchAll();
+    } catch (PDOException $e) { return []; }
+}
+
+function buildDelete(int $id): bool
+{
+    $db = getDB(); if (!$db) return false;
+    try {
+        $stmt = $db->prepare('DELETE FROM user_builds WHERE id=? AND username=?');
+        return $stmt->execute([$id, APP_USER]);
+    } catch (PDOException $e) { return false; }
+}
+
 // ── DB STATUS ─────────────────────────────────
 function dbStatus(): array
 {
@@ -420,6 +476,7 @@ function dbStatus(): array
             'favourites' => $count('favourites'),
             'kits'       => $count('user_kits'),
             'palettes'   => $count('user_palettes'),
+            'builds'     => $count('user_builds'),
         ];
     } catch (Exception $e) {
         return ['connected' => false, 'driver' => dbDriver($db), 'error' => 'Database tables could not be read.'];
