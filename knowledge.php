@@ -274,7 +274,7 @@ ui_head('Knowledge', '', $css);
 
       <?php if ($pal): ?>
       <hr class="divider">
-      <div class="sec-title">Materials — suggested palette: <?= e($pal['name']) ?></div>
+      <div class="sec-title">Materials — Suggested palette: <?= e($pal['name']) ?></div>
       <div class="pal-roles" style="margin-top:8px">
         <?php foreach ($pal['blocks'] as $role => $bid): $b = $blocks[$bid] ?? null; ?>
           <div class="pal-role">
