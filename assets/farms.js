@@ -40,5 +40,26 @@
       MC.remember({ type: 'guide', icon: '🌾', title: 'Farm — ' + (title ? title.textContent : FARM_ID),
                     href: 'farms.php?farm=' + encodeURIComponent(FARM_ID) });
     }
+
+    var bpMount = document.getElementById('bp-viewport-farm');
+    if (bpMount && window.FARM_BLUEPRINT && window.MC && MC.blueprint) {
+      MC.blueprint.mount(bpMount, window.FARM_BLUEPRINT);
+    }
+
+    if (window.FARM_RATE) fcCalc();
   });
+
+  /* Farm Calculator — only rendered when the guide states a real
+     numeric range (see lib/data/farms.php 'rate'). Scales that stated
+     range by hours; never invents a rate for a farm that has none. */
+  window.fcCalc = function () {
+    var r = window.FARM_RATE;
+    var out = document.getElementById('fc-result');
+    if (!r || !out) return;
+    var hours = Math.max(0, parseFloat(document.getElementById('fc-hours').value) || 0);
+    var low = Math.round(r.low * hours);
+    var high = Math.round(r.high * hours);
+    out.textContent = 'Estimated ' + low.toLocaleString() + '–' + high.toLocaleString() + ' ' + r.unit +
+      ' over ' + hours + ' hour' + (hours === 1 ? '' : 's') + ' (estimate).';
+  };
 })();
