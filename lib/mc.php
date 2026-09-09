@@ -146,12 +146,6 @@ const MC_FEATURES = [
     //   show_text contents → value, run_command value → command,
     //   open_url value → url
     'text_event_snake'  => 70,  // 1.21.5+
-
-    // The mace, and its three exclusive enchantments (Density, Breach,
-    // Wind Burst), were added in Java 1.21 ("Tricky Trials"). 1.21.1 is
-    // the oldest 1.21.x entry in MC_VERSIONS.
-    'mace'              => 55,  // 1.21+
-
 ];
 
 /** All versions, newest first. */
