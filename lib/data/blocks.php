@@ -173,6 +173,13 @@ function blocksAll(): array
         'dispenser'                => ['Dispenser',                'Functional', '#767676', 'any',                  'Fires items. Water buckets, arrows, fireworks.'],
         'note_block'               => ['Note Block',               'Functional', '#6b4b2c', 'any',                  ''],
         'command_block'            => ['Command Block',            'Functional', '#c19a6b', 'any',                  'Creative only. /give yourself one.'],
+        'oak_fence'                => ['Oak Fence',                 'Functional', '#b08a52', 'any',                  'Stops mobs walking onto farmland — 1.5 blocks tall.'],
+        'oak_slab'                 => ['Oak Slab',                  'Functional', '#b08a52', 'any',                  'Walkable cover for a hopper line underneath.'],
+        'spruce_door'              => ['Spruce Door',               'Functional', '#7a5b36', 'any',                  'Two blocks tall — the doorway itself.'],
+
+        // ── FARMING ──────────────────────────────
+        'farmland'                 => ['Farmland',                 'Farming', '#5b3a21', 'any',                     'Tilled with a hoe. Needs water within 4 blocks to stay hydrated.'],
+        'wheat'                    => ['Wheat (crop)',              'Farming', '#d4c04a', 'any',                     'Grows on farmland. Harvest at the fully golden stage.'],
     ];
 }
 
