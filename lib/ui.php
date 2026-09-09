@@ -134,6 +134,17 @@ function ui_empty(string $icon, string $title, string $sub = ''): string
         . ($sub ? '<div class="empty-sub">' . e($sub) . '</div>' : '') . '</div>';
 }
 
+/** "1,247" -> "19 stacks + 31" — shared by the Material and Farm calculators. */
+function ui_stacks(int $n): string
+{
+    $stacks = intdiv($n, 64);
+    $rest   = $n % 64;
+    if ($stacks === 0) return $rest . ($rest === 1 ? ' block' : ' blocks');
+    $out = $stacks . ($stacks === 1 ? ' stack' : ' stacks');
+    if ($rest > 0) $out .= ' + ' . $rest;
+    return $out;
+}
+
 function ui_badge(string $text, string $color = 'green'): string
 {
     return '<span class="badge badge-' . e($color) . '">' . e($text) . '</span>';
@@ -144,6 +155,27 @@ function ui_difficulty(string $level): string
 {
     $map = ['Easy' => 'green', 'Medium' => 'gold', 'Hard' => 'red', 'Expert' => 'purple'];
     return ui_badge($level, $map[$level] ?? 'blue');
+}
+
+/**
+ * Material Calculator table. $rows = blueprintMaterialCounts() shape:
+ * [{name, hex, count}, ...]. Real counts only — never call this with
+ * guessed numbers; an idea/farm with no blueprint should show no
+ * calculator at all rather than an invented one.
+ */
+function ui_material_table(array $rows): string
+{
+    if (!$rows) return '';
+    $total = array_sum(array_column($rows, 'count'));
+    $out = '<div class="mcalc"><table class="mcalc-table"><tbody>';
+    foreach ($rows as $r) {
+        $out .= '<tr><td><span class="mcalc-swatch" style="background:' . e($r['hex']) . '"></span></td>'
+            . '<td class="mcalc-name">' . e($r['name']) . '</td>'
+            . '<td class="mcalc-count">' . number_format($r['count']) . '</td>'
+            . '<td class="mcalc-stacks">' . e(ui_stacks($r['count'])) . '</td></tr>';
+    }
+    $out .= '</tbody></table><div class="mcalc-total">' . number_format($total) . ' blocks total</div></div>';
+    return $out;
 }
 
 /** Card linking to a tool / guide / idea. */
