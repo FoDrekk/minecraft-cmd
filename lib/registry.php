@@ -258,18 +258,22 @@ function registry_all(): array
     $entries = registry_tools();
 
     $content = [
-        'blocks.php'   => 'blocks_search_entries',
-        'palettes.php' => 'palettes_search_entries',
-        'tips.php'     => 'tips_search_entries',
-        'ideas.php'    => 'ideas_search_entries',
-        'farms.php'    => 'farms_search_entries',
+        'blocks.php'      => ['blocks_search_entries'],
+        'palettes.php'    => ['palettes_search_entries'],
+        'tips.php'        => ['tips_search_entries'],
+        'ideas.php'       => ['ideas_search_entries'],
+        'farms.php'       => ['farms_search_entries'],
+        'blueprints.php'  => ['blueprints_search_entries'],
+        'enchantments.php'=> ['enchant_search_entries', 'items_search_entries'],
     ];
-    foreach ($content as $file => $fn) {
+    foreach ($content as $file => $fns) {
         $path = __DIR__ . '/data/' . $file;
         if (!is_file($path)) continue;
         require_once $path;
-        if (function_exists($fn)) {
-            $entries = array_merge($entries, $fn());
+        foreach ($fns as $fn) {
+            if (function_exists($fn)) {
+                $entries = array_merge($entries, $fn());
+            }
         }
     }
     return $entries;

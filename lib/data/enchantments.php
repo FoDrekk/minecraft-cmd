@@ -130,17 +130,107 @@ function enchantConflictsWith(string $id, array $selectedIds): array
     return array_values(array_filter($selectedIds, fn($other) => enchantConflicts($id, $other)));
 }
 
+/** Every other enchantment id this one is incompatible with. */
+function enchantIncompatibleIds(string $id): array
+{
+    $meta = enchantMeta();
+    return array_values(array_filter(array_keys($meta), fn($other) => enchantConflicts($id, $other)));
+}
+
+/** Which slot names (Sword, Boots, Mace, …) can take this enchantment. */
+function enchantApplicableSlots(string $id): array
+{
+    $out = [];
+    foreach (enchantSlots() as $slot => $rows) {
+        foreach ($rows as [$eid, $max]) {
+            if ($eid === $id) { $out[$slot] = $max; break; }
+        }
+    }
+    return $out;
+}
+
+/**
+ * The full enchantment encyclopedia for the Knowledge tab: every
+ * entchantment with its metadata, max level, applicable slots and
+ * incompatible enchantments resolved to names. Built entirely from
+ * enchantMeta()/enchantSlots()/enchantConflictGroups() — no new data.
+ */
+function enchantEncyclopedia(): array
+{
+    $out = [];
+    foreach (enchantMeta() as $id => $m) {
+        $slots = enchantApplicableSlots($id);
+        $out[] = [
+            'id' => $id,
+            'name' => $m['name'],
+            'desc' => $m['desc'],
+            'category' => $m['category'],
+            'tier' => $m['tier'],
+            'gate' => $m['gate'] ?? null,
+            'maxLevel' => $slots ? max($slots) : 1,
+            'slots' => array_keys($slots),
+            'incompatible' => array_map('enchantName', enchantIncompatibleIds($id)),
+        ];
+    }
+    return $out;
+}
+
+function enchant_search_entries(): array
+{
+    $out = [];
+    foreach (enchantEncyclopedia() as $e) {
+        $out[] = [
+            'id' => 'ench-' . $e['id'], 'icon' => '✨', 'title' => $e['name'], 'cat' => 'enchantment',
+            'href' => 'knowledge.php?t=enchants&q=' . urlencode($e['id']),
+            'desc' => $e['desc'],
+            'keywords' => 'enchant enchantment ' . strtolower($e['name'] . ' ' . $e['category'] . ' ' . implode(' ', $e['slots'])),
+        ];
+    }
+    return $out;
+}
+
+function items_search_entries(): array
+{
+    $out = [];
+    foreach (itemsData()['flat'] as [$id, $name]) {
+        $slot = enchantSlotForItem($id);
+        $out[] = [
+            'id' => 'item-' . $id, 'icon' => '📦', 'title' => $name, 'cat' => 'item',
+            'href' => 'knowledge.php?t=items&q=' . urlencode($id),
+            'desc' => $slot ? 'Enchantable — ' . $slot : 'Item',
+            'keywords' => 'item ' . strtolower($name) . ' ' . $id,
+        ];
+    }
+    return $out;
+}
+
+/**
+ * items.php declares $ITEMS/$ITEMS_FLAT/$ENCHANTS as bare globals
+ * rather than exposing a function, so pulling them into a function's
+ * local scope needs a real `require` (not `require_once` — once any
+ * other function in the same request has *also* `require`d this file,
+ * a later `require_once` here is silently skipped, because PHP tracks
+ * every require/include against one shared list regardless of which
+ * keyword was used, leaving the caller's $ITEMS_FLAT undefined). This
+ * is the one place that does that `require`, cached so it only runs
+ * once per request; every other function in this file reads from here.
+ */
+function itemsData(): array
+{
+    static $data = null;
+    if ($data !== null) return $data;
+    require __DIR__ . '/../../items.php';
+    $data = ['items' => $ITEMS, 'flat' => $ITEMS_FLAT, 'enchants' => $ENCHANTS];
+    return $data;
+}
+
 /**
  * items.php's $ENCHANTS extended with slots that table does not cover
  * yet (Hoe, Fishing Rod, Shield, Elytra, Mace) — see items.php for those.
  */
 function enchantSlots(): array
 {
-    static $slots = null;
-    if ($slots !== null) return $slots;
-    require __DIR__ . '/../../items.php';
-    $slots = $ENCHANTS;
-    return $slots;
+    return itemsData()['enchants'];
 }
 
 /** Maps an item id (diamond_sword, netherite_boots, bow, …) to its slot key in enchantSlots(), or null if it is not enchantable. */
