@@ -19,6 +19,7 @@ function farmsAll(): array
 'wheat' => [
     'title' => 'Semi-Automatic Crop Farm', 'icon' => '🌾', 'tier' => 'Early game',
     'difficulty' => 'Easy', 'edition' => 'Both', 'checked' => '1.21 – 26.x',
+    'blueprint' => 'wheat-farm',
     'output' => 'Wheat, carrots, potatoes or beetroot. One 9×9 plot fills a chest over a few harvests and feeds you indefinitely.',
     'materials' => [
         '1 Water Bucket', '2 Chests', '4 Hoppers', '1 Hoe',
@@ -229,6 +230,11 @@ function farmsAll(): array
     'title' => 'Creeper Farm', 'icon' => '💥', 'tier' => 'Advanced',
     'difficulty' => 'Hard', 'edition' => 'Both', 'checked' => '1.21 – 26.x',
     'output' => 'Gunpowder for rockets and TNT. Roughly 500–1000 gunpowder per hour from a decent design.',
+    // The only farm here with a stated numeric rate, so the only one
+    // that gets a calculator (see the Farm Calculator UI in farms.php) —
+    // every other farm's output is deliberately left qualitative rather
+    // than inventing a number for it.
+    'rate' => ['unit' => 'gunpowder', 'low' => 500, 'high' => 1000, 'per' => 'hour'],
     'materials' => [
         '~800 Building Blocks', '~120 Trapdoors', '4 Water Buckets',
         '12 Hoppers', '2 Chests', '1 Cat (tamed, or an ocelot in a boat)',

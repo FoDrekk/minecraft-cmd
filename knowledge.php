@@ -12,9 +12,12 @@ require_once __DIR__ . '/lib/data/blocks.php';
 require_once __DIR__ . '/lib/data/palettes.php';
 require_once __DIR__ . '/lib/data/tips.php';
 require_once __DIR__ . '/lib/data/ideas.php';
+require_once __DIR__ . '/lib/data/blueprints.php';
+require_once __DIR__ . '/lib/data/enchantments.php';
+require_once __DIR__ . '/items.php';
 
 $tab  = $_GET['t'] ?? 'materials';
-if (!in_array($tab, ['materials', 'palette', 'tips', 'ideas'], true)) $tab = 'materials';
+if (!in_array($tab, ['materials', 'palette', 'tips', 'ideas', 'items', 'enchants'], true)) $tab = 'materials';
 
 $blocks   = blocksList(mcCurrentVersion());
 $styles   = paletteStyles();
@@ -97,6 +100,30 @@ $css = <<<CSS
 .feature-list, .tip-links { display:flex; flex-direction:column; gap:7px; margin-top:8px }
 .feature-list li { font-size:13.5px; color:var(--text2); line-height:1.6; list-style:none; padding-left:19px; position:relative }
 .feature-list li::before { content:'◆'; position:absolute; left:0; color:var(--green); font-size:9px; top:5px }
+.step-list { display:flex; flex-direction:column; gap:9px; margin-top:8px; counter-reset:step; padding-left:0 }
+.step-list li { font-size:13.5px; color:var(--text2); line-height:1.6; list-style:none; padding-left:30px; position:relative; counter-increment:step }
+.step-list li::before {
+  content:counter(step); position:absolute; left:0; top:0; width:21px; height:21px; border-radius:50%;
+  background:rgba(93,190,122,0.12); border:1px solid rgba(93,190,122,0.3); color:var(--green);
+  font-family:var(--mono); font-size:11px; font-weight:700; display:flex; align-items:center; justify-content:center;
+}
+.tag { font-size:9.5px; font-family:var(--mono); letter-spacing:1px; text-transform:uppercase;
+  border:1px solid var(--border2); color:var(--text3); padding:2px 6px; border-radius:4px }
+
+/* Items + Enchantments knowledge cards */
+.item-grid, .ench-know-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px }
+.item-card, .ench-know-card { display:flex; gap:11px; padding:12px 13px; background:var(--card); border:1px solid var(--border);
+  border-radius:var(--r); transition:all .13s }
+.item-card:hover, .ench-know-card:hover { border-color:var(--border3); background:var(--card2) }
+.item-card-body, .ench-know-body { min-width:0; flex:1 }
+.item-name, .ench-know-name { font-size:13px; font-weight:700; color:var(--text) }
+.item-id { font-family:var(--mono); font-size:10.5px; color:var(--text3); cursor:pointer; word-break:break-all }
+.item-id:hover { color:var(--green) }
+.ench-know-stars { font-size:10.5px; color:var(--gold); letter-spacing:1px; margin:2px 0 4px }
+.ench-know-desc { font-size:11.5px; color:var(--text3); line-height:1.45; margin-bottom:5px }
+.ench-know-facts { font-size:10.5px; color:var(--text3); line-height:1.7 }
+.ench-know-facts b { color:var(--text2) }
+.ench-know-link { font-size:10.5px; color:var(--green); text-decoration:none; font-weight:600 }
 CSS;
 
 ui_head('Knowledge', '', $css);
@@ -106,6 +133,8 @@ ui_head('Knowledge', '', $css);
 
   <div class="kn-tabs">
     <a class="kn-tab <?= $tab === 'materials' ? 'active' : '' ?>" href="knowledge.php?t=materials">🪨 Materials</a>
+    <a class="kn-tab <?= $tab === 'items' ? 'active' : '' ?>" href="knowledge.php?t=items">📦 Items</a>
+    <a class="kn-tab <?= $tab === 'enchants' ? 'active' : '' ?>" href="knowledge.php?t=enchants">✨ Enchantments</a>
     <a class="kn-tab <?= $tab === 'palette' ? 'active' : '' ?>" href="knowledge.php?t=palette">🎨 Palettes</a>
     <a class="kn-tab <?= $tab === 'tips' ? 'active' : '' ?>" href="knowledge.php?t=tips">💡 Building tips</a>
     <a class="kn-tab <?= $tab === 'ideas' ? 'active' : '' ?>" href="knowledge.php?t=ideas">🏰 Build ideas</a>
@@ -188,13 +217,23 @@ ui_head('Knowledge', '', $css);
   </div>
 
 <?php elseif ($tab === 'tips'): ?>
+  <div class="mat-controls">
+    <input type="text" id="tip-search" placeholder="Search tips — roof, redstone, palette…" autocomplete="off">
+    <select id="tip-group">
+      <option value="">All categories</option>
+      <?php foreach (tipsGroups() as $g): ?><option value="<?= e($g) ?>"><?= e($g) ?></option><?php endforeach; ?>
+    </select>
+    <span class="muted" style="font-size:12px" id="tip-count"></span>
+  </div>
+  <div id="tips-list">
   <?php
   $byGroup = [];
   foreach (tipsAll() as $id => $t) $byGroup[$t['group']][$id] = $t;
   foreach ($byGroup as $group => $tips): ?>
-    <div class="tip-group-title"><?= e($group) ?></div>
+    <div class="tip-group-title" data-tip-group-title="<?= e($group) ?>"><?= e($group) ?></div>
     <?php foreach ($tips as $id => $t): ?>
-      <details class="tip" id="tip-<?= e($id) ?>">
+      <details class="tip" id="tip-<?= e($id) ?>" data-tip-group="<?= e($group) ?>"
+                data-tip-search="<?= e(strtolower($t['title'] . ' ' . $t['summary'] . ' ' . $t['body'])) ?>">
         <summary>
           <div>
             <div class="tip-title"><?= e($t['title']) ?></div>
@@ -208,8 +247,9 @@ ui_head('Knowledge', '', $css);
       </details>
     <?php endforeach; ?>
   <?php endforeach; ?>
+  </div>
 
-<?php else: /* ideas */ ?>
+<?php elseif ($tab === 'ideas'): ?>
   <?php if ($openIdea && isset(ideasAll()[$openIdea])):
       $i = ideasAll()[$openIdea];
       $pal = $presets[$i['palette']] ?? null; ?>
@@ -234,7 +274,7 @@ ui_head('Knowledge', '', $css);
 
       <?php if ($pal): ?>
       <hr class="divider">
-      <div class="sec-title">Suggested palette — <?= e($pal['name']) ?></div>
+      <div class="sec-title">Materials — Suggested palette: <?= e($pal['name']) ?></div>
       <div class="pal-roles" style="margin-top:8px">
         <?php foreach ($pal['blocks'] as $role => $bid): $b = $blocks[$bid] ?? null; ?>
           <div class="pal-role">
@@ -247,6 +287,26 @@ ui_head('Knowledge', '', $css);
       <a class="btn btn-ghost btn-sm" style="margin-top:11px;display:inline-block;text-decoration:none"
          href="knowledge.php?t=palette&preset=<?= e($i['palette']) ?>">Open in palette builder →</a>
       <?php endif; ?>
+
+      <?php
+      $bp = !empty($i['blueprint']) ? blueprintGet($i['blueprint']) : null;
+      if ($bp) { $ideaBlueprintPayload = $bp; $ideaBlueprintPayload['materials'] = blueprintMaterialCounts($i['blueprint']); }
+      if ($bp): ?>
+      <hr class="divider">
+      <div class="sec-title">Blueprint &amp; exact material count</div>
+      <p class="hint" style="margin-bottom:10px"><?= e($bp['note']) ?></p>
+      <div id="bp-viewport-idea" class="bp-widget"></div>
+      <div style="margin-top:12px">
+        <div style="font-size:11px;font-family:var(--mono);letter-spacing:1.5px;text-transform:uppercase;color:var(--text3);font-weight:700;margin-bottom:8px">Material Calculator — exact count for this blueprint</div>
+        <?= ui_material_table(blueprintMaterialCounts($i['blueprint'])) ?>
+      </div>
+      <?php endif; ?>
+
+      <hr class="divider">
+      <div class="sec-title">Build steps</div>
+      <ol class="step-list">
+        <?php foreach ($i['steps'] as $s): ?><li><?= e($s) ?></li><?php endforeach; ?>
+      </ol>
 
       <hr class="divider">
       <div class="sec-title">Techniques this leans on</div>
@@ -268,24 +328,76 @@ ui_head('Knowledge', '', $css);
         <a class="btn btn-green btn-sm" style="text-decoration:none" href="build.php?t=planner">Plan the footprint →</a>
         <a class="btn btn-blue btn-sm" style="text-decoration:none" href="build.php?t=clear">Clear the site →</a>
       </div>
+
+      <hr class="divider">
+      <div class="sec-title">Save to My Stuff</div>
+      <div class="row" style="align-items:flex-end">
+        <?= ui_field('Name this build', '<input id="build-save-name" placeholder="e.g. My starter house" value="' . e($i['title']) . '">') ?>
+        <button class="btn btn-gold btn-sm" onclick="saveBuild('<?= e($openIdea) ?>', '<?= e($i['palette'] ?? '') ?>')">💾 Save build</button>
+      </div>
+      <p class="hint">Remembers this idea and its palette so you can find it again in My Stuff.</p>
     </div>
   <?php else: ?>
-    <div class="idea-grid">
+    <div class="mat-controls">
+      <select id="idea-cat">
+        <option value="">All categories</option>
+        <?php foreach (ideasCategories() as $c): ?><option value="<?= e($c) ?>"><?= e($c) ?></option><?php endforeach; ?>
+      </select>
+      <span class="muted" style="font-size:12px" id="idea-count"></span>
+    </div>
+    <div class="idea-grid" id="idea-grid">
       <?php foreach (ideasAll() as $id => $i): ?>
-        <a class="idea-card" style="text-decoration:none;display:block" href="knowledge.php?t=ideas&idea=<?= e($id) ?>">
+        <a class="idea-card" data-idea-cat="<?= e($i['category']) ?>" style="text-decoration:none;display:block" href="knowledge.php?t=ideas&idea=<?= e($id) ?>">
           <div class="idea-icon"><?= $i['icon'] ?></div>
           <div class="idea-title"><?= e($i['title']) ?></div>
-          <div class="idea-meta"><?= ui_difficulty($i['difficulty']) ?><span class="idea-size"><?= e($i['size']) ?></span></div>
+          <div class="idea-meta"><?= ui_difficulty($i['difficulty']) ?><span class="tag"><?= e($i['category']) ?></span><span class="idea-size"><?= e($i['size']) ?></span></div>
           <div class="idea-concept"><?= e($i['concept']) ?></div>
+          <?php if (!empty($i['blueprint'])): ?><span class="tag" style="color:var(--gold);border-color:rgba(232,169,74,0.3)">📐 Blueprint</span><?php endif; ?>
         </a>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
+
+<?php elseif ($tab === 'items'): ?>
+  <div class="mat-controls">
+    <input type="text" id="item-search" placeholder="Search items — sword, apple, diamond…" autocomplete="off">
+    <select id="item-cat">
+      <option value="">All categories</option>
+      <?php foreach (array_keys($ITEMS) as $c): ?><option value="<?= e($c) ?>"><?= e($c) ?></option><?php endforeach; ?>
+    </select>
+    <span class="muted" style="font-size:12px" id="item-count"></span>
+  </div>
+  <div class="item-grid" id="item-grid"></div>
+
+<?php elseif ($tab === 'enchants'): ?>
+  <div class="mat-controls">
+    <input type="text" id="ench-search" placeholder="Search enchantments — sharpness, mending, silk touch…" autocomplete="off">
+    <select id="ench-cat">
+      <option value="">All categories</option>
+      <?php foreach (array_unique(array_column(enchantMeta(), 'category')) as $c): ?>
+        <option value="<?= e($c) ?>"><?= e(ucfirst($c)) ?></option>
+      <?php endforeach; ?>
+    </select>
+    <span class="muted" style="font-size:12px" id="ench-count"></span>
+  </div>
+  <div class="ench-know-grid" id="ench-know-grid"></div>
 <?php endif; ?>
 </div>
 
 <script>
 var BLOCKS = <?= json_encode(array_values($blocks)) ?>;
+<?php if ($tab === 'items'): ?>
+var ITEMS_BY_CAT = <?php
+    $itemsOut = [];
+    foreach ($ITEMS as $cat => $list) {
+        foreach ($list as [$id, $name]) $itemsOut[$cat][] = ['id' => $id, 'name' => $name, 'slot' => enchantSlotForItem($id)];
+    }
+    echo json_encode($itemsOut);
+?>;
+<?php endif; ?>
+<?php if ($tab === 'enchants'): ?>
+var ENCH_KNOWLEDGE = <?= json_encode(enchantEncyclopedia()) ?>;
+<?php endif; ?>
 var PALETTE_POOLS = <?= json_encode(paletteRolePools()) ?>;
 var PALETTE_PRESETS = <?= json_encode($presets) ?>;
 var PALETTE_STYLES = <?= json_encode($styles) ?>;
@@ -293,6 +405,9 @@ var SAVED_PALETTES = <?= json_encode($saved) ?>;
 var KN_TAB = <?= json_encode($tab) ?>;
 var KN_PRESET = <?= json_encode($_GET['preset'] ?? '') ?>;
 var KN_STYLE = <?= json_encode($_GET['style'] ?? '') ?>;
+<?php if (!empty($ideaBlueprintPayload)): ?>
+window.IDEA_BLUEPRINT = <?= json_encode($ideaBlueprintPayload) ?>;
+<?php endif; ?>
 </script>
 <script src="assets/knowledge.js"></script>
 <?php ui_foot(); ?>

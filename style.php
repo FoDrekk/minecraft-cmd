@@ -547,6 +547,72 @@ kbd {
 .tile-desc { font-size:11.5px; color:var(--text3); line-height:1.45 }
 
 /* ═══════════════════════════════
+   MC VISUAL — shared item/block tiles (assets/mcvisual.js)
+   No bundled textures exist yet; these are the one shared visual
+   every page uses in the meantime — see mcvisual.js.
+═══════════════════════════════ */
+.mc-tile {
+  border-radius:10px; display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08), inset 0 -6px 10px rgba(0,0,0,0.25); flex-shrink:0;
+}
+.mc-tile svg { filter:drop-shadow(0 1px 1px rgba(0,0,0,0.4)) }
+.mc-block-tile { border-radius:8px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.1); flex-shrink:0 }
+.mc-tile-lg { width:52px; height:52px } .mc-tile-lg svg { width:28px; height:28px }
+.mc-tile-md { width:40px; height:40px } .mc-tile-md svg { width:22px; height:22px }
+.mc-tile-sm { width:28px; height:28px } .mc-tile-sm svg { width:16px; height:16px }
+
+/* ═══════════════════════════════
+   BLUEPRINT VIEWER — assets/blueprint.js, shared by Build Ideas + Farms
+═══════════════════════════════ */
+.bp-toolbar { display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:10px }
+.bp-layers { display:flex; gap:4px; flex-wrap:wrap }
+.bp-layer-btn { padding:5px 10px; font-size:11px; font-weight:600; background:var(--bg3); border:1px solid var(--border2); color:var(--text3); border-radius:var(--r-sm); cursor:pointer; transition:all .13s; font-family:var(--body) }
+.bp-layer-btn span { display:block; font-size:9.5px; color:var(--text3); font-weight:400 }
+.bp-layer-btn:hover { border-color:var(--border3); color:var(--text2) }
+.bp-layer-btn.active { background:rgba(93,190,122,0.1); border-color:rgba(93,190,122,0.35); color:var(--green) }
+.bp-controls { display:flex; gap:4px }
+.bp-btn { width:28px; height:28px; background:var(--bg3); border:1px solid var(--border2); color:var(--text2); border-radius:var(--r-sm); cursor:pointer; font-size:14px; line-height:1 }
+.bp-btn:hover { border-color:var(--border3) }
+.bp-body { display:grid; grid-template-columns:1fr 220px; gap:14px }
+@media(max-width:820px){ .bp-body{ grid-template-columns:1fr } }
+.bp-viewport { position:relative; overflow:auto; max-height:420px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:16px; cursor:grab; user-select:none }
+.bp-viewport:active { cursor:grabbing }
+.bp-compass { position:sticky; top:0; left:0; width:26px; font-family:var(--mono); font-size:11px; color:var(--text3); text-align:center; margin-bottom:6px }
+.bp-compass span { display:block; font-size:13px }
+.bp-grid { display:grid; gap:1px; background:rgba(255,255,255,0.04); width:max-content }
+.bp-cell { box-shadow:inset 0 0 0 1px rgba(0,0,0,0.25) }
+.bp-cell-air { background:transparent; box-shadow:none }
+.bp-cell-hl { outline:2px solid var(--gold); outline-offset:-2px; z-index:1; position:relative }
+.bp-cell-dim { opacity:.25 }
+.bp-side { display:flex; flex-direction:column; gap:10px }
+.bp-hover { font-size:11.5px; color:var(--text2); line-height:1.6; background:var(--bg3); border:1px solid var(--border2); border-radius:var(--r-sm); padding:9px 11px; min-height:44px }
+.bp-legend-title { font-size:10px; font-family:var(--mono); letter-spacing:1.5px; text-transform:uppercase; color:var(--text3); font-weight:700; margin:2px 0 4px }
+.bp-legend-row { display:flex; align-items:center; gap:7px; width:100%; padding:5px 7px; background:var(--bg3); border:1px solid transparent; border-radius:var(--r-xs); cursor:pointer; font-family:var(--body); font-size:11.5px; color:var(--text2); margin-bottom:3px }
+.bp-legend-row:hover { border-color:var(--border2) }
+.bp-legend-row.on { border-color:var(--gold); background:rgba(232,169,74,0.08) }
+.bp-legend-row i { width:15px; height:15px; border-radius:3px; flex-shrink:0; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15) }
+.bp-legend-row span { flex:1; text-align:left }
+.bp-legend-row b { font-family:var(--mono); color:var(--text3); font-weight:600 }
+.bp-legend-empty { font-size:11.5px; color:var(--text3); font-style:italic }
+.bp-materials { margin-top:10px; padding-top:10px; border-top:1px solid var(--border) }
+.bp-mat-row { display:flex; align-items:center; gap:7px; padding:4px 7px; font-size:11.5px; color:var(--text2) }
+.bp-mat-row i { width:13px; height:13px; border-radius:3px; flex-shrink:0 }
+.bp-mat-row span { flex:1 }
+.bp-mat-row b { font-family:var(--mono); color:var(--text3) }
+
+/* ═══════════════════════════════
+   MATERIAL CALCULATOR — lib/ui.php ui_material_table()
+═══════════════════════════════ */
+.mcalc-table { width:100%; border-collapse:collapse }
+.mcalc-table td { padding:7px 8px; border-bottom:1px solid var(--border); font-size:12.5px; vertical-align:middle }
+.mcalc-table tr:last-child td { border-bottom:none }
+.mcalc-swatch { display:block; width:16px; height:16px; border-radius:4px; box-shadow:inset 0 0 0 1px rgba(255,255,255,0.15) }
+.mcalc-name { color:var(--text) }
+.mcalc-count { font-family:var(--mono); color:var(--text2); text-align:right }
+.mcalc-stacks { font-family:var(--mono); color:var(--text3); text-align:right; white-space:nowrap }
+.mcalc-total { text-align:right; font-size:11.5px; color:var(--text3); font-family:var(--mono); margin-top:8px; padding-top:8px; border-top:1px solid var(--border2) }
+
+/* ═══════════════════════════════
    COMMAND OUTPUT WIDGET
 ═══════════════════════════════ */
 .cmdout { border:1px solid var(--border2); border-radius:var(--r); background:var(--bg2); overflow:hidden }
@@ -693,4 +759,6 @@ function copyText(txt){
 
 <?php ui_runtime_data(); ?>
 <script src="assets/mccmd.js"></script>
+<script src="assets/mcvisual.js"></script>
+<script src="assets/blueprint.js"></script>
 <script src="assets/search.js"></script>

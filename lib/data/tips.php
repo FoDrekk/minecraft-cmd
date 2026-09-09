@@ -158,6 +158,49 @@ function tipsAll(): array
             'body' => 'If every surface has trapdoors, buttons, chains and vines, the eye has nothing to rest on. Leave large plain sections and concentrate detail around entrances, roof lines and corners — the places people look.',
             'try' => 'Remove half the small detail from your busiest wall and see if it improves.',
         ],
+
+        // ── REDSTONE ─────────────────────────────
+        // Long-standing mechanics, not version-specific unless noted.
+        'redstone-diagonal' => [
+            'group' => 'Redstone', 'title' => 'Redstone dust never runs diagonally',
+            'summary' => 'A line has to step through a shared edge, not just a shared corner.',
+            'body' => 'Redstone dust only connects to a block it directly touches on a side, so a diagonal gap in a line simply breaks the signal. If a wire that looks continuous will not power the far end, look for a diagonal step in the layout, not a strength problem.',
+            'try' => 'Trace your dust line block by block — a wire that "looks" straight often steps diagonally by one.',
+        ],
+        'redstone-repeater-lock' => [
+            'group' => 'Redstone', 'title' => 'A powered repeater from the side locks it',
+            'summary' => 'Side-powering a repeater freezes its current output, ignoring its input.',
+            'body' => 'Repeaters have two uses: the front input delays and passes a signal, but powering one from the side latches it — its output stays exactly as it was the instant it got locked, and changes to the front input are ignored until the side power is removed. This is the basis of most redstone latches.',
+            'try' => 'Power a lit repeater from the side, then toggle its input — the output will not change while the lock holds.',
+        ],
+        'redstone-observer' => [
+            'group' => 'Redstone', 'title' => 'Observers pulse on a block update, not a power level',
+            'summary' => 'They fire once, briefly, whenever the watched block changes — not while it stays powered.',
+            'body' => 'An observer watches the single block directly in front of its arrow and gives a one-tick pulse whenever that block changes state (a crop growing, a piston extending, a door opening). It does not read redstone power at all, so wiring one next to a redstone wire and expecting it to react to power changes will not work.',
+            'try' => 'If an observer seems to do nothing, check it is facing a block that actually changes, not a redstone wire.',
+        ],
+
+        // ── COMMAND & SEARCH (using this app) ────
+        // About Minecraft CMD's own tools, not Minecraft mechanics — kept
+        // accurate by construction.
+        'app-search' => [
+            'group' => 'Command & Search', 'title' => 'Press / to search from anywhere',
+            'summary' => 'The search shortcut works on every page, not just Home.',
+            'body' => 'Global search finds commands, items, enchantments, blocks, build ideas, farms and tips in one box, and each result says what kind of thing it is. It is usually faster than clicking through the nav bar for anything you already know the name of.',
+            'try' => 'Press / right now and type the name of something you want to build or generate.',
+        ],
+        'app-doctor-explain' => [
+            'group' => 'Command & Search', 'title' => 'Command Doctor also just explains',
+            'summary' => 'You do not need a broken command to use it.',
+            'body' => 'Paste any working command into Command Doctor\'s Explain mode to see what each part actually does — useful for understanding a command you copied from somewhere else before you run it on your own world.',
+            'try' => 'Paste a command you are unsure about into the Explainer instead of just running it.',
+        ],
+        'app-library' => [
+            'group' => 'Command & Search', 'title' => 'Save commands you will reuse',
+            'summary' => 'The Library keeps a command, its name, category and Minecraft version together.',
+            'body' => 'Any generated command can be saved to My Stuff with "Copy + Save" or "Library", which is worth doing for anything you will run again — a kit giveaway, a scoreboard setup, a farm-related /fill. Saved commands remember which Minecraft version they were built for.',
+            'try' => 'Next time you generate a command you will reuse, save it instead of re-building it later.',
+        ],
     ];
 }
 

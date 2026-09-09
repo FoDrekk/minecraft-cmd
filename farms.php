@@ -8,6 +8,7 @@
 // ================================================
 require_once __DIR__ . '/lib/ui.php';
 require_once __DIR__ . '/lib/data/farms.php';
+require_once __DIR__ . '/lib/data/blueprints.php';
 
 $farms = farmsAll();
 $open  = $_GET['farm'] ?? '';
@@ -103,11 +104,30 @@ ui_head($open ? $farms[$open]['title'] : 'Farm Lab', '', $css);
       <div style="margin-top:16px"><?= ui_warn('<b>Version note.</b> ' . e($f['version_note'])) ?></div>
     <?php endif; ?>
 
+    <?php if (!empty($f['rate'])): $r = $f['rate']; ?>
+    <div class="guide-sec">
+      <div class="guide-sec-title">Farm Calculator — estimate</div>
+      <p class="hint">Based on the stated range of <?= number_format($r['low']) ?>–<?= number_format($r['high']) ?> <?= e($r['unit']) ?> per <?= e($r['per']) ?>. Real output depends on your exact build, game version and how long the farm stays loaded — treat this as a rough estimate, not a guarantee.</p>
+      <div class="row" style="margin-top:8px;max-width:280px">
+        <?= ui_field('Hours AFK', '<input type="number" id="fc-hours" min="0.5" step="0.5" value="1" oninput="fcCalc()">') ?>
+      </div>
+      <div id="fc-result" class="guide-lead" style="margin-top:8px"></div>
+    </div>
+    <?php endif; ?>
+
     <div class="guide-sec">
       <div class="guide-sec-title">Materials</div>
       <?php ui_checklist('farm_' . $open, $f['materials']); ?>
       <div class="check-progress" id="check-progress"></div>
     </div>
+
+    <?php $bp = !empty($f['blueprint']) ? blueprintGet($f['blueprint']) : null; if ($bp): ?>
+    <div class="guide-sec">
+      <div class="guide-sec-title">Blueprint</div>
+      <p class="hint" style="margin-bottom:10px"><?= e($bp['note']) ?></p>
+      <div id="bp-viewport-farm" class="bp-widget"></div>
+    </div>
+    <?php endif; ?>
 
     <div class="guide-sec">
       <div class="guide-sec-title">Before you start</div>
@@ -167,6 +187,12 @@ ui_head($open ? $farms[$open]['title'] : 'Farm Lab', '', $css);
 
 <script>
 var FARM_ID = <?= json_encode($open) ?>;
+<?php if ($open && !empty($f['blueprint']) && $bp): $bpPayload = $bp; $bpPayload['materials'] = blueprintMaterialCounts($f['blueprint']); ?>
+window.FARM_BLUEPRINT = <?= json_encode($bpPayload) ?>;
+<?php endif; ?>
+<?php if ($open && !empty($f['rate'])): ?>
+window.FARM_RATE = <?= json_encode($f['rate']) ?>;
+<?php endif; ?>
 </script>
 <script src="assets/farms.js"></script>
 <?php ui_foot(); ?>

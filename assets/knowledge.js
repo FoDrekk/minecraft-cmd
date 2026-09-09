@@ -48,6 +48,81 @@
     }).join('');
   }
 
+  /* ═══════════ ITEMS ═══════════ */
+  function renderItems() {
+    var grid = el('item-grid');
+    if (!grid) return;
+    var q = el('item-search').value.trim().toLowerCase();
+    var cat = el('item-cat').value;
+
+    var rows = [];
+    Object.keys(ITEMS_BY_CAT).forEach(function (c) {
+      if (cat && cat !== c) return;
+      ITEMS_BY_CAT[c].forEach(function (it) {
+        if (q && it.name.toLowerCase().indexOf(q) === -1 && it.id.indexOf(q) === -1) return;
+        rows.push(it);
+      });
+    });
+
+    el('item-count').textContent = rows.length + ' items';
+    if (!rows.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div>' +
+        '<div class="empty-title">No items match</div></div>';
+      return;
+    }
+
+    grid.innerHTML = rows.map(function (it) {
+      var visual = it.slot ? MC.visual.equipmentTile(it.slot, it.id, 'sm') :
+        '<div class="mc-block-tile mc-tile-sm" style="background:#5a6478"></div>';
+      var enchLink = it.slot ? '<a class="ench-know-link" href="enchantments.php?item=' + encodeURIComponent(it.id) + '">✨ Enchant this →</a>' : '';
+      return '<div class="item-card">' + visual +
+        '<div class="item-card-body">' +
+        '<div class="item-name">' + esc(it.name) + '</div>' +
+        '<div class="item-id" data-copy="' + esc(it.id) + '" title="Click to copy the id">' + esc(it.id) + '</div>' +
+        (enchLink ? '<div style="margin-top:4px">' + enchLink + '</div>' : '') +
+        '</div></div>';
+    }).join('');
+  }
+
+  /* ═══════════ ENCHANTMENTS KNOWLEDGE ═══════════ */
+  function renderEnchantsKnowledge() {
+    var grid = el('ench-know-grid');
+    if (!grid) return;
+    var q = el('ench-search').value.trim().toLowerCase();
+    var cat = el('ench-cat').value;
+
+    var rows = ENCH_KNOWLEDGE.filter(function (e) {
+      if (cat && e.category !== cat) return false;
+      if (!q) return true;
+      return e.name.toLowerCase().indexOf(q) !== -1 || e.id.indexOf(q) !== -1;
+    });
+
+    el('ench-count').textContent = rows.length + ' of ' + ENCH_KNOWLEDGE.length + ' enchantments';
+    if (!rows.length) {
+      grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🔍</div>' +
+        '<div class="empty-title">No enchantments match</div></div>';
+      return;
+    }
+
+    grid.innerHTML = rows.map(function (e) {
+      var stars = '★'.repeat(e.tier) + '☆'.repeat(5 - e.tier);
+      var gateNote = e.gate ? '<br><b>Requires:</b> Java 1.21+' : '';
+      return '<div class="ench-know-card">' +
+        '<div class="ench-know-body">' +
+        '<div class="ench-know-name">' + esc(e.name) + '</div>' +
+        '<div class="ench-know-stars">' + stars + '</div>' +
+        '<div class="ench-know-desc">' + esc(e.desc) + '</div>' +
+        '<div class="ench-know-facts">' +
+        '<b>Max level:</b> ' + e.maxLevel + '<br>' +
+        '<b>Applies to:</b> ' + (e.slots.length ? esc(e.slots.join(', ')) : 'n/a') + '<br>' +
+        '<b>Conflicts:</b> ' + (e.incompatible.length ? esc(e.incompatible.join(', ')) : 'None') +
+        gateNote +
+        '</div>' +
+        '<div style="margin-top:6px"><a class="ench-know-link" href="enchantments.php">✨ Open in Enchantment Hub →</a></div>' +
+        '</div></div>';
+    }).join('');
+  }
+
   /* ═══════════ PALETTE ═══════════ */
   function renderRoles() {
     var box = el('pal-roles');
@@ -185,6 +260,52 @@
       renderMaterials();
     }
 
+    if (KN_TAB === 'items') {
+      ['item-search', 'item-cat'].forEach(function (id) {
+        var e = el(id);
+        if (e) { e.addEventListener('input', renderItems); e.addEventListener('change', renderItems); }
+      });
+      var itemParams = new URLSearchParams(location.search);
+      if (itemParams.get('q')) el('item-search').value = itemParams.get('q');
+      renderItems();
+    }
+
+    if (KN_TAB === 'enchants') {
+      ['ench-search', 'ench-cat'].forEach(function (id) {
+        var e = el(id);
+        if (e) { e.addEventListener('input', renderEnchantsKnowledge); e.addEventListener('change', renderEnchantsKnowledge); }
+      });
+      renderEnchantsKnowledge();
+      var params = new URLSearchParams(location.search);
+      if (params.get('q')) { el('ench-search').value = params.get('q'); renderEnchantsKnowledge(); }
+    }
+
+    if (KN_TAB === 'tips') {
+      var tipSearch = el('tip-search'), tipGroup = el('tip-group');
+      function filterTips() {
+        var q = (tipSearch.value || '').trim().toLowerCase();
+        var g = tipGroup.value;
+        var tips = document.querySelectorAll('[data-tip-group]');
+        var shown = 0;
+        var groupsWithVisible = {};
+        tips.forEach(function (t) {
+          var match = (!g || t.dataset.tipGroup === g) && (!q || t.dataset.tipSearch.indexOf(q) !== -1);
+          t.hidden = !match;
+          if (match) { shown++; groupsWithVisible[t.dataset.tipGroup] = true; }
+        });
+        document.querySelectorAll('[data-tip-group-title]').forEach(function (h) {
+          h.hidden = !groupsWithVisible[h.dataset.tipGroupTitle];
+        });
+        var count = el('tip-count');
+        if (count) count.textContent = shown + ' of ' + tips.length + ' tips';
+      }
+      if (tipSearch && tipGroup) {
+        tipSearch.addEventListener('input', filterTips);
+        tipGroup.addEventListener('change', filterTips);
+        filterTips();
+      }
+    }
+
     if (KN_TAB === 'palette') {
       if (KN_PRESET && PALETTE_PRESETS[KN_PRESET]) {
         loadPreset(KN_PRESET);
@@ -217,6 +338,40 @@
           });
         }
       });
+    }
+
+    window.saveBuild = function (ideaId, paletteId) {
+      var nameEl = el('build-save-name');
+      var name = (nameEl.value || '').trim();
+      if (!name) { MC.toast('Give the build a name first', 'var(--red)'); return; }
+      MC.api('build_save', { name: name, idea: ideaId, palette: paletteId || '' }).then(function (r) {
+        MC.toast(r.ok ? 'Saved to My Stuff' : (r.error || 'Could not save'), r.ok ? null : 'var(--red)');
+      });
+    };
+
+    if (KN_TAB === 'ideas') {
+      var ideaCat = el('idea-cat');
+      if (ideaCat) {
+        function filterIdeas() {
+          var val = ideaCat.value;
+          var cards = document.querySelectorAll('#idea-grid [data-idea-cat]');
+          var shown = 0;
+          cards.forEach(function (c) {
+            var match = !val || c.dataset.ideaCat === val;
+            c.style.display = match ? '' : 'none';
+            if (match) shown++;
+          });
+          var count = el('idea-count');
+          if (count) count.textContent = shown + ' of ' + cards.length + ' ideas';
+        }
+        ideaCat.addEventListener('change', filterIdeas);
+        filterIdeas();
+      }
+
+      var bpMount = el('bp-viewport-idea');
+      if (bpMount && window.IDEA_BLUEPRINT && MC.blueprint) {
+        MC.blueprint.mount(bpMount, window.IDEA_BLUEPRINT);
+      }
     }
 
     // Copy a block id from anywhere on the page
