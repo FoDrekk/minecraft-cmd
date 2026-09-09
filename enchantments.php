@@ -41,17 +41,12 @@ $css = <<<CSS
 .eh-item-card.sel { border-color:var(--green); background:rgba(93,190,122,0.08); box-shadow:var(--glow-green) }
 .eh-item-card.locked { opacity:.4; cursor:not-allowed }
 .eh-item-card.locked:hover { transform:none; border-color:var(--border) }
-.eh-tile { width:52px; height:52px; border-radius:10px; display:flex; align-items:center; justify-content:center;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08), inset 0 -6px 10px rgba(0,0,0,0.25); flex-shrink:0 }
-.eh-tile svg { width:28px; height:28px; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.4)) }
 .eh-item-name { font-size:11.5px; font-weight:600; color:var(--text2); line-height:1.3 }
 .eh-item-lock { font-size:9.5px; font-family:var(--mono); color:var(--text3) }
 
 .eh-empty-side { text-align:center; padding:40px 18px; color:var(--text3) }
 
 .eh-selected-head { display:flex; align-items:center; gap:12px; margin-bottom:14px }
-.eh-selected-head .eh-tile { width:44px; height:44px }
-.eh-selected-head .eh-tile svg { width:24px; height:24px }
 .eh-selected-name { font-size:16px; font-weight:800 }
 .eh-selected-slot { font-size:11.5px; color:var(--text3) }
 
