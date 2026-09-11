@@ -156,6 +156,118 @@ function blueprintsAll(): array
                 ];
             })(),
         ],
+
+        // Matches farms.php 'sugar-cane' steps exactly: a 12-wide row,
+        // water channel on one side, an observer/piston pair behind
+        // each cane column (observer at the height of the 2nd segment,
+        // piston at the height of the 1st so it clears the whole
+        // stack), a hopper line under the water into a double chest,
+        // and a roof over the observers. Each layer is tagged to the
+        // farm's own numbered step — farms.php attaches the step's
+        // title/text at render time so that prose lives in one place.
+        'sugar-cane-farm' => [
+            'farm' => 'sugar-cane',
+            'title' => 'Automatic Sugar Cane Farm',
+            'footprint' => ['x' => 12, 'z' => 3],
+            'note' => 'The observer/piston column sits one row south of the cane, at the height of the 1st and 2nd cane segments respectively — shown as two views of that row since they are placed on different steps.',
+            'legend' => [
+                'S' => 'sand',
+                'G' => 'sugar_cane',
+                'O' => 'observer',
+                'P' => 'piston',
+                'H' => 'hopper',
+                'X' => 'chest',
+                'R' => ['name' => 'Building Blocks (any)', 'hex' => '#6b6b6b'],
+                'W' => ['name' => 'Water channel', 'hex' => '#3d6fd6'],
+            ],
+            'layers' => [
+                ['label' => 'Base — water channel + sand row', 'y' => 0, 'step' => 1, 'highlight' => ['W', 'S'], 'rows' => [
+                    str_repeat('W', 12),
+                    str_repeat('S', 12),
+                    str_repeat('.', 12),
+                ]],
+                ['label' => 'Cane planted on the sand row', 'y' => 1, 'step' => 2, 'highlight' => ['G'], 'rows' => [
+                    str_repeat('.', 12),
+                    str_repeat('G', 12),
+                    str_repeat('.', 12),
+                ]],
+                ['label' => 'Observers — height of the 2nd segment', 'y' => 2, 'step' => 3, 'highlight' => ['O'], 'facing' => 'N', 'rows' => [
+                    str_repeat('.', 12),
+                    str_repeat('.', 12),
+                    str_repeat('O', 12),
+                ]],
+                ['label' => 'Pistons — height of the 1st segment', 'y' => 1, 'step' => 4, 'highlight' => ['P'], 'facing' => 'N', 'rows' => [
+                    str_repeat('.', 12),
+                    str_repeat('.', 12),
+                    str_repeat('P', 12),
+                ]],
+                ['label' => 'Hopper line under the water, into a double chest', 'y' => -1, 'step' => 5, 'highlight' => ['H', 'X'], 'facing' => 'E', 'rows' => [
+                    str_repeat('H', 12) . 'XX',
+                ]],
+                ['label' => 'Roof over the observers', 'y' => 4, 'step' => 6, 'highlight' => ['R'], 'rows' => [
+                    str_repeat('R', 12),
+                    str_repeat('R', 12),
+                    str_repeat('R', 12),
+                ]],
+            ],
+        ],
+
+        // A single repeatable spawn-platform module for farms.php
+        // 'creeper', at the 9x9 size its own step 1 text recommends.
+        // This is one module, not the whole multi-platform farm — see
+        // the blueprint's own note and the farm's "repeat and stack
+        // it" guidance, so it never claims to be the full build.
+        'creeper-farm-module' => [
+            'farm' => 'creeper',
+            'title' => 'Creeper Farm — one spawn platform module',
+            'footprint' => ['x' => 9, 'z' => 9],
+            'note' => 'One 9×9 platform module. Stack several of these (4 blocks apart) for a full farm — this blueprint intentionally does not invent an exact platform count.',
+            'legend' => [
+                'T' => 'trapdoor',
+                'H' => 'hopper',
+                'X' => 'chest',
+                'F' => 'campfire',
+                'R' => ['name' => 'Building Blocks (any)', 'hex' => '#6b6b6b'],
+                'W' => ['name' => 'Water channel', 'hex' => '#3d6fd6'],
+                'V' => ['name' => 'Drop shaft (open to the kill chamber below)', 'hex' => '#0d0d10'],
+                'A' => ['name' => 'Tamed cat (in a boat)', 'hex' => '#d9853b'],
+            ],
+            // Every layer below shows only the material newly placed at
+            // that step — nothing is redrawn across layers — so the
+            // "whole build" material total (blueprintMaterialCounts())
+            // never double-counts a block shown at more than one step.
+            'layers' => (function () {
+                $floor = [];       // y=0: the solid platform, with the hole cut through it
+                $waterOnly = [];   // y=1: water sitting on top of the floor, nothing else
+                for ($z = 0; $z < 9; $z++) {
+                    $floor[] = $z === 4 ? substr_replace(str_repeat('R', 9), 'V', 4, 1) : str_repeat('R', 9);
+                    if ($z === 4) {
+                        $waterOnly[] = substr_replace(str_repeat('W', 9), '.', 4, 1); // the hole itself stays open, not water
+                    } else {
+                        $waterOnly[] = substr_replace(str_repeat('.', 9), 'W', 4, 1);
+                    }
+                }
+                $catOnly = str_repeat('.', 4) . 'A' . str_repeat('.', 4);
+                return [
+                    ['label' => 'Platform floor, with the drop shaft opening', 'y' => 0, 'step' => 1, 'highlight' => ['R'], 'rows' => $floor],
+                    ['label' => 'Ceiling — trapdoors hanging underneath, 2 blocks up', 'y' => 2, 'step' => 2, 'highlight' => ['T'], 'rows' => [
+                        str_repeat('T', 9), str_repeat('T', 9), str_repeat('T', 9), str_repeat('T', 9), str_repeat('T', 9),
+                        str_repeat('T', 9), str_repeat('T', 9), str_repeat('T', 9), str_repeat('T', 9),
+                    ]],
+                    ['label' => 'Water channels toward the centre hole', 'y' => 1, 'step' => 3, 'highlight' => ['W'], 'rows' => $waterOnly],
+                    ['label' => 'Cat platform beside the funnel', 'y' => 1, 'step' => 4, 'highlight' => ['A'], 'rows' => [
+                        str_repeat('.', 9), str_repeat('.', 9), str_repeat('.', 9), $catOnly, str_repeat('.', 9),
+                        str_repeat('.', 9), str_repeat('.', 9), str_repeat('.', 9), str_repeat('.', 9),
+                    ]],
+                    ['label' => 'Kill chamber, far below the shaft', 'y' => -23, 'step' => 5, 'highlight' => ['R', 'F'], 'rows' => [
+                        'RRR', 'RFR', 'RRR',
+                    ]],
+                    ['label' => 'Collection — hoppers into a double chest', 'y' => -24, 'step' => 6, 'highlight' => ['H', 'X'], 'facing' => 'E', 'rows' => [
+                        'HHHXX',
+                    ]],
+                ];
+            })(),
+        ],
     ];
 }
 

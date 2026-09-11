@@ -50,12 +50,20 @@ function farmsAll(): array
 'sugar-cane' => [
     'title' => 'Automatic Sugar Cane Farm', 'icon' => '🎋', 'tier' => 'Early game',
     'difficulty' => 'Easy', 'edition' => 'Both', 'checked' => '1.21 – 26.x',
+    'blueprint' => 'sugar-cane-farm',
     'output' => 'Sugar cane for paper, books, rockets and sugar. A 12-wide row is plenty for one player.',
-    'materials' => [
-        '12 Observers', '12 Pistons', '12 Redstone Dust or a solid block row',
-        '12 Sand or Dirt blocks', '1 Water Bucket', '12 Hoppers', '2 Chests',
-        '~40 Building Blocks', '12 Sugar Cane',
+    'materials_v' => $sugarCaneMats = [
+        ['qty' => '12', 'label' => 'Observers', 'block' => 'observer'],
+        ['qty' => '12', 'label' => 'Pistons', 'block' => 'piston'],
+        ['qty' => '12', 'label' => 'Redstone Dust or a solid block row', 'block' => 'redstone'],
+        ['qty' => '12', 'label' => 'Sand or Dirt blocks', 'block' => 'sand'],
+        ['qty' => '1', 'label' => 'Water Bucket', 'glyph' => '🪣'],
+        ['qty' => '12', 'label' => 'Hoppers', 'block' => 'hopper'],
+        ['qty' => '2', 'label' => 'Chests', 'block' => 'chest'],
+        ['qty' => '~40', 'label' => 'Building Blocks', 'glyph' => '🧱'],
+        ['qty' => '12', 'label' => 'Sugar Cane', 'block' => 'sugar_cane'],
     ],
+    'materials' => array_map(fn($m) => trim(($m['qty'] ?? '') . ' ' . $m['label']), $sugarCaneMats),
     'prep' => 'Build it next to water, or bring a bucket. Sugar cane only grows on sand, red sand, dirt, grass, moss, mud or podzol that touches water on at least one side.',
     'steps' => [
         ['Lay the base', 'Make a row of sand or dirt with a one-block water channel running alongside it.'],
@@ -235,14 +243,21 @@ function farmsAll(): array
     // every other farm's output is deliberately left qualitative rather
     // than inventing a number for it.
     'rate' => ['unit' => 'gunpowder', 'low' => 500, 'high' => 1000, 'per' => 'hour'],
-    'materials' => [
-        '~800 Building Blocks', '~120 Trapdoors', '4 Water Buckets',
-        '12 Hoppers', '2 Chests', '1 Cat (tamed, or an ocelot in a boat)',
-        '~40 Slabs', 'Blocks for a 24-block drop or a campfire kill chamber',
+    'blueprint' => 'creeper-farm-module',
+    'materials_v' => $creeperMats = [
+        ['qty' => '~800', 'label' => 'Building Blocks', 'glyph' => '🧱'],
+        ['qty' => '~120', 'label' => 'Trapdoors', 'block' => 'trapdoor'],
+        ['qty' => '4', 'label' => 'Water Buckets', 'glyph' => '🪣'],
+        ['qty' => '12', 'label' => 'Hoppers', 'block' => 'hopper'],
+        ['qty' => '2', 'label' => 'Chests', 'block' => 'chest'],
+        ['qty' => '1', 'label' => 'Cat (tamed, or an ocelot in a boat)', 'glyph' => '🐈'],
+        ['qty' => '~40', 'label' => 'Slabs', 'block' => 'oak_slab'],
+        ['qty' => null, 'label' => 'Blocks for a 24-block drop or a campfire kill chamber', 'block' => 'campfire'],
     ],
+    'materials' => array_map(fn($m) => trim(($m['qty'] ?? '') . ' ' . $m['label']), $creeperMats),
     'prep' => 'Best built over an ocean, high above sea level. You need a cat — bring one in a boat or breed one from a village.',
     'steps' => [
-        ['Build the spawn platforms', 'Large flat platforms, each with exactly 2 blocks of vertical space, roofed over.'],
+        ['Build the spawn platforms', 'Large flat platforms, each with exactly 2 blocks of vertical space, roofed over. A 9×9 module is a practical size to repeat and stack for a bigger farm.'],
         ['Trapdoor the ceiling', 'Place trapdoors on the underside of the ceiling across the whole platform. This is the key step.'],
         ['Add water channels', 'Water flows from the edges toward a central drop hole.'],
         ['Place the cat', 'Put a tamed cat in a boat or on a block at the centre, where creepers being funnelled will pass close to it.'],

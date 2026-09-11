@@ -570,9 +570,21 @@ kbd {
 .bp-layer-btn span { display:block; font-size:9.5px; color:var(--text3); font-weight:400 }
 .bp-layer-btn:hover { border-color:var(--border3); color:var(--text2) }
 .bp-layer-btn.active { background:rgba(93,190,122,0.1); border-color:rgba(93,190,122,0.35); color:var(--green) }
+.bp-toolbar-right { display:flex; align-items:center; gap:10px }
+.bp-facing { font-size:11px; font-family:var(--mono); color:var(--gold); display:flex; align-items:center; gap:5px; white-space:nowrap }
+.bp-facing-arrow { font-size:15px; line-height:1 }
 .bp-controls { display:flex; gap:4px }
 .bp-btn { width:28px; height:28px; background:var(--bg3); border:1px solid var(--border2); color:var(--text2); border-radius:var(--r-sm); cursor:pointer; font-size:14px; line-height:1 }
 .bp-btn:hover { border-color:var(--border3) }
+.bp-btn:disabled { opacity:.35; cursor:default }
+.bp-btn:disabled:hover { border-color:var(--border2) }
+
+.bp-stepnav { background:var(--bg2); border:1px solid var(--border2); border-radius:var(--r); padding:11px 13px; margin-bottom:10px }
+.bp-stepnav-head { display:flex; align-items:center; gap:10px }
+.bp-stepnav-label { flex:1; text-align:center; font-size:11px; font-family:var(--mono); letter-spacing:1px; text-transform:uppercase; color:var(--green); font-weight:700 }
+.bp-stepnav-bar { height:4px; border-radius:2px; background:var(--bg3); margin-top:9px; overflow:hidden }
+.bp-stepnav-fill { height:100%; background:var(--green); transition:width .2s }
+.bp-stepnav-text { font-size:12.5px; color:var(--text2); line-height:1.55; margin-top:8px }
 .bp-body { display:grid; grid-template-columns:1fr 220px; gap:14px }
 @media(max-width:820px){ .bp-body{ grid-template-columns:1fr } }
 .bp-viewport { position:relative; overflow:auto; max-height:420px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:16px; cursor:grab; user-select:none }
@@ -666,7 +678,12 @@ kbd {
 }
 .check-row:hover { background:rgba(255,255,255,0.03) }
 .check-row input { width:15px; height:15px; accent-color:var(--green); cursor:pointer; flex-shrink:0 }
-.check-row input:checked + span { color:var(--text3); text-decoration:line-through }
+.check-row input:checked ~ span { color:var(--text3); text-decoration:line-through }
+.check-row-visual { padding:5px 9px }
+
+.mc-chip { width:24px; height:24px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12); font-size:13px; line-height:1 }
+.mc-chip-glyph { background:var(--bg3) }
 
 /* ═══════════════════════════════
    EMPTY STATE
