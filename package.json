@@ -1,0 +1,11 @@
+{
+  "name": "minecraft-cmd",
+  "private": true,
+  "description": "Browser test harness for Minecraft CMD. The app itself is plain PHP and needs none of this.",
+  "scripts": {
+    "test": "./tests/run.sh"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.1"
+  }
+}
