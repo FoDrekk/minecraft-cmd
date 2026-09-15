@@ -57,6 +57,7 @@ $css = <<<CSS
 .trouble-body ul { margin:0; padding-left:18px }
 .trouble-body li { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:3px }
 .check-progress { font-size:12px; font-family:var(--mono); color:var(--text3); margin-top:9px }
+.step-jump-btn { margin-left:9px; vertical-align:middle; text-decoration:none }
 CSS;
 
 ui_head($open ? $farms[$open]['title'] : 'Farm Lab', '', $css);
@@ -117,11 +118,25 @@ ui_head($open ? $farms[$open]['title'] : 'Farm Lab', '', $css);
 
     <div class="guide-sec">
       <div class="guide-sec-title">Materials</div>
-      <?php ui_checklist('farm_' . $open, $f['materials']); ?>
+      <?php if (!empty($f['materials_v'])): ?>
+        <?php ui_checklist('farm_' . $open, array_map(fn($m) => [
+            'label' => trim(($m['qty'] ?? '') . ' ' . $m['label']),
+            'chip'  => ui_material_chip($m['block'] ?? null, $m['glyph'] ?? null),
+        ], $f['materials_v'])); ?>
+      <?php else: ?>
+        <?php ui_checklist('farm_' . $open, $f['materials']); ?>
+      <?php endif; ?>
       <div class="check-progress" id="check-progress"></div>
     </div>
 
-    <?php $bp = !empty($f['blueprint']) ? blueprintGet($f['blueprint']) : null; if ($bp): ?>
+    <?php
+    $bp = !empty($f['blueprint']) ? blueprintGet($f['blueprint']) : null;
+    // Which prose step numbers have a matching blueprint layer — drives
+    // the "View in blueprint" jump buttons in the step list below.
+    $bpSteps = [];
+    if ($bp) foreach ($bp['layers'] as $layer) if (isset($layer['step'])) $bpSteps[$layer['step']] = true;
+    ?>
+    <?php if ($bp): ?>
     <div class="guide-sec">
       <div class="guide-sec-title">Blueprint</div>
       <p class="hint" style="margin-bottom:10px"><?= e($bp['note']) ?></p>
@@ -136,11 +151,15 @@ ui_head($open ? $farms[$open]['title'] : 'Farm Lab', '', $css);
 
     <div class="guide-sec">
       <div class="guide-sec-title">Build it</div>
-      <?php foreach ($f['steps'] as $n => [$title, $text]): ?>
+      <?php foreach ($f['steps'] as $n => [$title, $text]): $sn = $n + 1; ?>
         <div class="step">
-          <div class="step-num"><?= $n + 1 ?></div>
+          <div class="step-num"><?= $sn ?></div>
           <div>
-            <div class="step-title"><?= e($title) ?></div>
+            <div class="step-title"><?= e($title) ?>
+              <?php if (isset($bpSteps[$sn])): ?>
+                <button type="button" class="btn btn-ghost btn-sm step-jump-btn" data-step-jump="<?= $sn ?>">🔍 View in blueprint</button>
+              <?php endif; ?>
+            </div>
             <div class="step-text"><?= e($text) ?></div>
           </div>
         </div>
@@ -187,7 +206,19 @@ ui_head($open ? $farms[$open]['title'] : 'Farm Lab', '', $css);
 
 <script>
 var FARM_ID = <?= json_encode($open) ?>;
-<?php if ($open && !empty($f['blueprint']) && $bp): $bpPayload = $bp; $bpPayload['materials'] = blueprintMaterialCounts($f['blueprint']); ?>
+<?php if ($open && !empty($f['blueprint']) && $bp):
+    $bpPayload = $bp;
+    $bpPayload['materials'] = blueprintMaterialCounts($f['blueprint']);
+    // Attach each step-linked layer's title/text from the farm's own
+    // prose steps — blueprints.php never duplicates that text itself.
+    foreach ($bpPayload['layers'] as &$layer) {
+        if (!isset($layer['step']) || !isset($f['steps'][$layer['step'] - 1])) continue;
+        [$stepTitle, $stepText] = $f['steps'][$layer['step'] - 1];
+        $layer['stepTitle'] = $stepTitle;
+        $layer['stepText']  = $stepText;
+    }
+    unset($layer);
+?>
 window.FARM_BLUEPRINT = <?= json_encode($bpPayload) ?>;
 <?php endif; ?>
 <?php if ($open && !empty($f['rate'])): ?>

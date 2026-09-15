@@ -156,7 +156,33 @@ ui_head('Build', '', $css);
       <span class="panel-syntax">/fill &lt;from&gt; &lt;to&gt; air …</span></div>
     <div class="panel-desc">Flatten ground, remove a forest, or empty a space to build in. Clearing only the leaves and logs is usually what you want — it leaves the terrain intact.</div>
 
-    <?php ui_card('Region', function () { ui_region('clr'); }, 'blue'); ?>
+    <?php ui_card('Region', function () { ?>
+      <div class="pill-row" style="margin-bottom:12px">
+        <button class="pill active" data-clr-region="corners">Two corners</button>
+        <button class="pill" data-clr-region="quick">Around me</button>
+      </div>
+
+      <div id="clr-quick-wrap" hidden>
+        <div class="pill-row" style="margin-bottom:12px">
+          <button class="pill" data-clr-size="3">3 × 3</button>
+          <button class="pill active" data-clr-size="5">5 × 5</button>
+          <button class="pill" data-clr-size="10">10 × 10</button>
+        </div>
+        <div class="row">
+          <?= ui_field('Size (blocks across)', '<input id="clr-size" type="number" min="1" max="128" value="5" oninput="clrQuickApply()">',
+              'The footprint centred on where you stand') ?>
+          <?= ui_field('Height', '<input id="clr-height" type="number" min="1" max="128" value="3" oninput="clrQuickApply()">') ?>
+          <?= ui_field('Direction', ui_select('clr-dir', [
+              'around' => 'Around me',
+              'up'     => 'Above me',
+              'down'   => 'Below me',
+          ], 'around', 'onchange="clrQuickApply()"')) ?>
+        </div>
+        <p class="hint">Uses ~ relative coordinates, so the region follows wherever you are standing when you run it.</p>
+      </div>
+
+      <div id="clr-corners-wrap"><?php ui_region('clr'); ?></div>
+    <?php }, 'blue'); ?>
 
     <?php ui_card('What to remove', function () { ?>
       <div class="pill-row" style="margin-bottom:12px">

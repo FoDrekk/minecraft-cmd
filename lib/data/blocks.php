@@ -176,10 +176,20 @@ function blocksAll(): array
         'oak_fence'                => ['Oak Fence',                 'Functional', '#b08a52', 'any',                  'Stops mobs walking onto farmland — 1.5 blocks tall.'],
         'oak_slab'                 => ['Oak Slab',                  'Functional', '#b08a52', 'any',                  'Walkable cover for a hopper line underneath.'],
         'spruce_door'              => ['Spruce Door',               'Functional', '#7a5b36', 'any',                  'Two blocks tall — the doorway itself.'],
+        'piston'                   => ['Piston',                   'Functional', '#8a6a42', 'any',                  'Pushes the block in front of it one space when powered.'],
+        'sticky_piston'            => ['Sticky Piston',             'Functional', '#5a7a3e', 'any',                  'Like a piston, but pulls the block back on retract.'],
+
+        // ── REDSTONE ──────────────────────────────
+        'redstone'                 => ['Redstone Dust',            'Redstone', '#a11f1f', 'any',                     'Carries a signal up to 15 blocks before it needs a repeater.'],
+        'redstone_torch'           => ['Redstone Torch',            'Redstone', '#c62b1f', 'any',                     'A constant power source; also inverts a signal.'],
+        'repeater'                 => ['Redstone Repeater',         'Redstone', '#8f7a6a', 'any',                     'Delays and boosts a redstone signal, one direction only.'],
+        'comparator'               => ['Redstone Comparator',       'Redstone', '#8f7a6a', 'any',                     'Compares or measures signal strength — reads container fullness.'],
 
         // ── FARMING ──────────────────────────────
         'farmland'                 => ['Farmland',                 'Farming', '#5b3a21', 'any',                     'Tilled with a hoe. Needs water within 4 blocks to stay hydrated.'],
         'wheat'                    => ['Wheat (crop)',              'Farming', '#d4c04a', 'any',                     'Grows on farmland. Harvest at the fully golden stage.'],
+        'sugar_cane'               => ['Sugar Cane',                'Farming', '#8fae4a', 'any',                     'Grows on sand, dirt, grass, moss, mud or podzol touching water. Never breaks its own base block.'],
+        'dirt'                     => ['Dirt',                      'Farming', '#7a5a3a', 'any',                     'Cheap fill, and farmland before it is tilled.'],
     ];
 }
 

@@ -7,6 +7,7 @@
 // no template engine, no build step.
 // ================================================
 require_once __DIR__ . '/mc.php';
+require_once __DIR__ . '/data/blocks.php';
 
 function e(?string $s): string
 {
@@ -117,15 +118,44 @@ function ui_steps(array $steps, int $active = 1, string $id = ''): void
     echo '</div>';
 }
 
-/** Tickable materials list. State persists per key in localStorage. */
+/**
+ * Tickable materials list. State persists per key in localStorage.
+ * Each item is either a plain string (existing behaviour) or
+ * ['label' => ..., 'chip' => html] to show a visual tile — see
+ * ui_material_chip(). The chip is decorative (aria-hidden); the
+ * label text is always the source of truth for what the item is.
+ */
 function ui_checklist(string $key, array $items): void
 {
     echo '<div class="checklist" data-checklist="' . e($key) . '">';
     foreach ($items as $i => $item) {
-        $id = 'ck_' . e($key) . '_' . $i;
-        echo '<label class="check-row"><input type="checkbox" id="' . $id . '" data-ck="' . $i . '"><span>' . e($item) . '</span></label>';
+        $id    = 'ck_' . e($key) . '_' . $i;
+        $label = is_array($item) ? $item['label'] : $item;
+        $chip  = is_array($item) ? ($item['chip'] ?? '') : '';
+        $cls   = 'check-row' . ($chip !== '' ? ' check-row-visual' : '');
+        echo '<label class="' . $cls . '"><input type="checkbox" id="' . $id . '" data-ck="' . $i . '">' . $chip . '<span>' . e($label) . '</span></label>';
     }
     echo '</div>';
+}
+
+/**
+ * A small visual tile for one material: a block's real palette colour
+ * when it is a catalogued block, otherwise a plain emoji glyph the
+ * caller supplies — never a guessed or fabricated texture. Falls back
+ * to a neutral placeholder tile if neither is given.
+ */
+function ui_material_chip(?string $blockId = null, ?string $glyph = null): string
+{
+    if ($blockId !== null) {
+        $row = blocksAll()[$blockId] ?? null;
+        if ($row) {
+            return '<span class="mc-chip" style="background:' . e($row[2]) . '" title="' . e($row[0]) . '" aria-hidden="true"></span>';
+        }
+    }
+    if ($glyph !== null && $glyph !== '') {
+        return '<span class="mc-chip mc-chip-glyph" aria-hidden="true">' . $glyph . '</span>';
+    }
+    return '<span class="mc-chip mc-chip-glyph" aria-hidden="true">◻️</span>';
 }
 
 function ui_empty(string $icon, string $title, string $sub = ''): string
@@ -191,10 +221,11 @@ function ui_tile(string $href, string $icon, string $title, string $desc, string
 function ui_runtime_data(): void
 {
     $data = [
-        'versions' => MC_VERSIONS,
-        'syntax'   => MC_SYNTAX,
-        'features' => MC_FEATURES,
-        'current'  => mcCurrentVersion(),
+        'versions'  => MC_VERSIONS,
+        'syntax'    => MC_SYNTAX,
+        'features'  => MC_FEATURES,
+        'selectors' => MC_SELECTORS,
+        'current'   => mcCurrentVersion(),
     ];
     echo '<script>window.MC_DATA=' . json_encode($data, JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
 }

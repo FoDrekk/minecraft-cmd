@@ -42,9 +42,18 @@
     }
 
     var bpMount = document.getElementById('bp-viewport-farm');
+    var bpApi = null;
     if (bpMount && window.FARM_BLUEPRINT && window.MC && MC.blueprint) {
-      MC.blueprint.mount(bpMount, window.FARM_BLUEPRINT);
+      bpApi = MC.blueprint.mount(bpMount, window.FARM_BLUEPRINT);
     }
+
+    // "View in blueprint" buttons on the prose step list jump the
+    // mounted blueprint to that step's layer and highlight.
+    document.querySelectorAll('[data-step-jump]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (bpApi) bpApi.gotoStep(+btn.dataset.stepJump);
+      });
+    });
 
     if (window.FARM_RATE) fcCalc();
   });

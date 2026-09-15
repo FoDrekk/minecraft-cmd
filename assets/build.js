@@ -12,7 +12,7 @@
   var BLOCK_LIMIT = 32768;
   var LARGE = 8000;
 
-  var state = { clearMode: 'all' };
+  var state = { clearMode: 'all', clearRegion: 'corners' };
 
   function el(id) { return document.getElementById(id); }
   function v(id) { var e = el(id); return e ? e.value.trim() : ''; }
@@ -378,6 +378,36 @@
     }
   }
 
+  /* ── CLEAR AREA: "around me" mode ─────────────
+     Writes ~ relative corners into the same clr-* inputs the corner
+     mode uses, so region(), renderVolume() and B.clear() stay the one
+     implementation — this only decides what the corners should be. */
+  function tilde(n) { return n === 0 ? '~' : '~' + n; }
+
+  // Both corners are inclusive, so a span of `size` runs from -half to
+  // size-half-1 — which is exactly what axisSize() counts back.
+  function spanFrom(size) {
+    var half = Math.floor((size - 1) / 2);
+    return { from: -half, to: size - half - 1 };
+  }
+
+  window.clrQuickApply = function () {
+    if (state.clearRegion !== 'quick') return;
+    var size = Math.max(1, Math.min(128, Math.round(num('clr-size', 5))));
+    var height = Math.max(1, Math.min(128, Math.round(num('clr-height', 3))));
+    var dir = v('clr-dir') || 'around';
+
+    var h = spanFrom(size);
+    var y = dir === 'up' ? { from: 0, to: height - 1 }
+          : dir === 'down' ? { from: -(height - 1), to: 0 }
+          : spanFrom(height);
+
+    var set = function (id, val) { var e = el(id); if (e) e.value = val; };
+    set('clr-x1', tilde(h.from)); set('clr-y1', tilde(y.from)); set('clr-z1', tilde(h.from));
+    set('clr-x2', tilde(h.to));   set('clr-y2', tilde(y.to));   set('clr-z2', tilde(h.to));
+    rebuild();
+  };
+
   /* ═══════════ REBUILD ═══════════ */
   window.rebuild = function () {
     var filterWrap = el('fill-filter-wrap');
@@ -415,6 +445,34 @@
         btn.classList.add('active');
         state.clearMode = btn.dataset.clear;
         rebuild();
+        if (window.playClick) playClick();
+      });
+    });
+
+    document.querySelectorAll('[data-clr-region]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btn.parentNode.querySelectorAll('[data-clr-region]').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        state.clearRegion = btn.dataset.clrRegion;
+        var quick = state.clearRegion === 'quick';
+        var quickWrap = el('clr-quick-wrap');
+        var corners = document.querySelector('#clr-corners-wrap .region');
+        if (quickWrap) quickWrap.hidden = !quick;
+        // Only the coordinate grid is hidden — the volume readout below it
+        // stays visible, because both modes need it.
+        if (corners) corners.hidden = quick;
+        if (quick) clrQuickApply(); else rebuild();
+        if (window.playClick) playClick();
+      });
+    });
+
+    document.querySelectorAll('[data-clr-size]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        btn.parentNode.querySelectorAll('[data-clr-size]').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        var input = el('clr-size');
+        if (input) input.value = btn.dataset.clrSize;
+        clrQuickApply();
         if (window.playClick) playClick();
       });
     });

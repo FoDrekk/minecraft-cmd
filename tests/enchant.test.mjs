@@ -195,6 +195,45 @@ await page.goto(`${BASE}/enchantments.php`, { waitUntil: 'domcontentloaded' });
 check('Tools nav item is active on the Enchantment Hub page',
   await page.locator('.nav-link.active').first().textContent().then(t => t.trim().includes('Tools')), true);
 
+// ── TARGET: quick selector chips, custom names, live validation ──
+const says = async () => (await page.textContent('#eh-target-says')).trim();
+await pickItem('diamond sword');
+check('four quick selector chips are offered', await page.locator('[data-eh-target]').count(), 4);
+has('the default target is explained in plain language', await says(), 'the nearest player');
+check('the matching chip is lit',
+  await page.locator('[data-eh-target="@p"]').evaluate(e => e.classList.contains('active')), true);
+
+await page.click('[data-eh-target="@s"]');
+await page.waitForTimeout(80);
+has('picking @s rewrites the command', await cmd(), '/give @s diamond_sword');
+has('@s is explained', await says(), 'whoever runs the command');
+
+await page.fill('#eh-target', 'nizkbiits');
+await page.waitForTimeout(80);
+has('a custom player name is accepted', await cmd(), '/give nizkbiits diamond_sword');
+has('the custom name is echoed back', await says(), 'the player nizkbiits');
+check('no chip stays lit for a custom name', await page.locator('[data-eh-target].active').count(), 0);
+
+await page.fill('#eh-target', '@z');
+await page.waitForTimeout(80);
+check('an invalid selector generates no command at all', await cmd(), '');
+has('the invalid selector is explained', await warn(), 'not a real selector');
+
+await page.fill('#eh-target', '@nizkbiits');
+await page.waitForTimeout(80);
+has('a player name written with @ is caught specifically', await says(), 'without the @');
+
+await page.fill('#eh-target', '@a[distance=..10]');
+await page.waitForTimeout(80);
+has('a selector with arguments still works', await cmd(), '/give @a[distance=..10] diamond_sword');
+
+await page.fill('#eh-target', 'ab');
+await page.waitForTimeout(80);
+has('a suspicious short name warns but still generates', await cmd(), '/give ab diamond_sword');
+has('the short name is flagged', await warn(), '3-16 characters');
+await page.fill('#eh-target', '@p');
+await page.waitForTimeout(80);
+
 // ── SAVE (Library) round-trips through the existing api.php ──
 await pickItem('netherite sword');
 await page.click('#out-ench [data-act="fav"]');

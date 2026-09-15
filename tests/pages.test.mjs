@@ -95,8 +95,11 @@ await page.goto(`${BASE}/index.php`);
 await page.click('button:has-text("Surprise me")');
 await page.waitForSelector('.surprise-kind');
 const kind = await page.textContent('.surprise-kind');
+// Every kind api.php's surprise pool can return — keep in step with the
+// 'kind' values there, or this fails at random on whichever one is missing.
 check('surprise: returns a known kind',
-  ['Build idea', 'Farm', 'Building tip', 'Block palette', 'Command challenge', 'Build challenge'].includes(kind.trim()), true);
+  ['Build idea', 'Farm', 'Building tip', 'Block palette', 'Command challenge', 'Build challenge', 'Enchantment']
+    .includes(kind.trim()), true);
 
 // ── MATERIALS FILTER ────────────────────────────
 await page.goto(`${BASE}/knowledge.php?t=materials`);
