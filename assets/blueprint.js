@@ -29,6 +29,21 @@
 
   function esc(s) { return MC.escapeHtml(s); }
 
+  /* Cells and swatches paint through the shared resolver
+     (assets/mcvisual.js), so a texture dropped into assets/textures/
+     shows up here with no blueprint-specific mapping of its own. With no
+     asset for the id it stays the Material Library's approximate colour,
+     exactly as before. */
+  function swatchStyle(meta) {
+    var r = (meta && meta.id && MC.visual && MC.visual.resolve) ? MC.visual.resolve(meta.id) : null;
+    if (r && r.src) {
+      // Real quotes here: the whole attribute is HTML-escaped below, and
+      // the parser turns &quot; back into " before the CSS is read.
+      return 'background-image:url("' + String(r.src).replace(/["\\]/g, '\\$&') + '")';
+    }
+    return 'background:' + ((meta && meta.hex) || '#5a6478');
+  }
+
   var FACING_ARROW = { N: '↑', E: '→', S: '↓', W: '←' };
   var FACING_LABEL = { N: 'North', E: 'East', S: 'South', W: 'West' };
 
@@ -120,7 +135,7 @@
         if (c.ch === '.') return '<div class="bp-cell bp-cell-air"></div>';
         var meta = bp.legend[c.ch] || { name: c.ch, hex: '#5a6478' };
         var hl = isHighlighted(c.ch) ? ' bp-cell-hl' : (state.highlight ? ' bp-cell-dim' : '');
-        return '<div class="bp-cell' + hl + '" style="background:' + esc(meta.hex) + '" ' +
+        return '<div class="bp-cell' + hl + '" style="' + esc(swatchStyle(meta)) + '" ' +
           'data-x="' + c.x + '" data-z="' + c.z + '" data-name="' + esc(meta.name) + '"></div>';
       }).join('');
     }
@@ -143,7 +158,7 @@
         var meta = bp.legend[ch] || { name: ch, hex: '#5a6478' };
         var on = isHighlighted(ch);
         return '<button type="button" class="bp-legend-row' + (on ? ' on' : '') + '" data-bp-hl="' + ch + '">' +
-          '<i style="background:' + esc(meta.hex) + '"></i>' +
+          '<i style="' + esc(swatchStyle(meta)) + '"></i>' +
           '<span>' + esc(meta.name) + '</span><b>' + counts[ch] + '</b></button>';
       }).join('');
     }
@@ -271,7 +286,7 @@
     if (materialsEl && bp.materials && bp.materials.length) {
       materialsEl.hidden = false;
       materialsEl.innerHTML = '<div class="bp-legend-title">Whole build</div>' + bp.materials.map(function (m) {
-        return '<div class="bp-mat-row"><i style="background:' + esc(m.hex) + '"></i>' +
+        return '<div class="bp-mat-row"><i style="' + esc(swatchStyle(m)) + '"></i>' +
           '<span>' + esc(m.name) + '</span><b>' + m.count + '</b></div>';
       }).join('');
     }

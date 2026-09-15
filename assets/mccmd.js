@@ -14,6 +14,10 @@
     versions: D.versions,
     features: D.features,
     selectors: D.selectors || {},
+    // Shared Minecraft data the visual layer resolves against — see
+    // assets/mcvisual.js. Empty objects keep it safe on a page that
+    // loads the runtime without the visual data.
+    data: { textures: D.textures || {}, blockHex: D.blockHex || {} },
     _cur: D.current
   };
 
@@ -36,6 +40,32 @@
     document.cookie = 'mc_version=' + encodeURIComponent(id) + ';path=/;max-age=31536000;samesite=lax';
     try { localStorage.setItem('mc_version', id); } catch (e) {}
     document.dispatchEvent(new CustomEvent('mc:version', { detail: { version: id } }));
+  };
+
+  /* ── SHARED UI BITS ──────────────────────────────
+     Client-rendered counterparts of the PHP helpers in lib/ui.php, so a
+     validation message built in the browser is the same component as one
+     rendered on the server — same classes, same icon, same screen-reader
+     prefix. Keep the two in step. */
+  var VALIDATION = {
+    ok:    { icon: '✓', word: 'Valid' },
+    warn:  { icon: '⚠', word: 'Warning' },
+    error: { icon: '✕', word: 'Invalid' },
+    info:  { icon: 'ⓘ', word: 'Information' }
+  };
+
+  MC.ui = {
+    /** Markup for one validation message. Mirrors ui_validation(). */
+    validation: function (kind, text, title) {
+      var v = VALIDATION[kind] || VALIDATION.info;
+      var role = (kind === 'error' || kind === 'warn') ? ' role="alert"' : '';
+      return '<div class="validation validation-' + escapeHtml(kind in VALIDATION ? kind : 'info') + '"' + role + '>' +
+        '<i class="validation-icon" aria-hidden="true">' + v.icon + '</i>' +
+        '<span class="sr-only">' + v.word + ': </span>' +
+        '<span class="validation-body">' +
+        (title ? '<b class="validation-title">' + escapeHtml(title) + '</b>' : '') +
+        escapeHtml(text) + '</span></div>';
+    }
   };
 
   /* ── TARGET VALIDATION ───────────────────────────
