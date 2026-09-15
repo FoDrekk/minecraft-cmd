@@ -249,9 +249,10 @@
   function renderTargetSays(check) {
     var says = el('eh-target-says');
     if (!says) return;
-    var icon = check.level === 'error' ? '⛔' : (check.level === 'warn' ? '⚠' : '✓');
-    var color = check.level === 'error' ? 'var(--red)' : (check.level === 'warn' ? 'var(--gold)' : 'var(--green)');
-    says.innerHTML = '<span style="color:' + color + '">' + icon + '</span> ' + esc(check.says);
+    // The shared validation component, so this reads identically to a
+    // validation message anywhere else in the app.
+    var kind = check.level === 'error' ? 'error' : (check.level === 'warn' ? 'warn' : 'ok');
+    says.innerHTML = MC.ui.validation(kind, check.says);
 
     // A quick chip stays lit only while the field still holds its value.
     var current = (el('eh-target').value || '').trim();
