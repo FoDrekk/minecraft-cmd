@@ -221,10 +221,11 @@ function ui_tile(string $href, string $icon, string $title, string $desc, string
 function ui_runtime_data(): void
 {
     $data = [
-        'versions' => MC_VERSIONS,
-        'syntax'   => MC_SYNTAX,
-        'features' => MC_FEATURES,
-        'current'  => mcCurrentVersion(),
+        'versions'  => MC_VERSIONS,
+        'syntax'    => MC_SYNTAX,
+        'features'  => MC_FEATURES,
+        'selectors' => MC_SELECTORS,
+        'current'   => mcCurrentVersion(),
     ];
     echo '<script>window.MC_DATA=' . json_encode($data, JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
 }

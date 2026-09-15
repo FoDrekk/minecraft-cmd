@@ -109,6 +109,23 @@ const MC_VERSIONS = [
 
 const MC_DEFAULT_VERSION = '26.2';
 
+// ── TARGET SELECTORS ─────────────────────────────
+// The canonical list. Command Doctor validates against it, the client
+// runtime (assets/mccmd.js) validates target fields against it, and
+// builders offer the `quick` ones as one-click choices — so "which
+// selectors exist" is answered in exactly one place.
+//   says         = plain language, used by the Doctor's explainer
+//   players_only = matches players, so type= filtering is meaningless
+//   quick        = offered as a one-click chip in target pickers
+const MC_SELECTORS = [
+    '@s' => ['label' => 'Yourself',       'says' => 'whoever runs the command', 'players_only' => false, 'quick' => true],
+    '@p' => ['label' => 'Nearest player', 'says' => 'the nearest player',       'players_only' => true,  'quick' => true],
+    '@a' => ['label' => 'Every player',   'says' => 'every player',             'players_only' => true,  'quick' => true],
+    '@r' => ['label' => 'Random player',  'says' => 'a random player',          'players_only' => true,  'quick' => true],
+    '@e' => ['label' => 'Every entity',   'says' => 'every entity',             'players_only' => false, 'quick' => false],
+    '@n' => ['label' => 'Nearest entity', 'says' => 'the nearest entity',       'players_only' => false, 'quick' => false],
+];
+
 // ── FEATURE GATES ────────────────────────────────
 // Minimum rank at which a feature/argument exists. Keyed by feature name so
 // generators can ask "can I use this here?" instead of hardcoding versions.

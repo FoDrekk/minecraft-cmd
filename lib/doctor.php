@@ -336,7 +336,7 @@ function doctor_check_selector(string $token, string $version): array
     }
 
     $letter = $m[1];
-    if (!in_array('@' . $letter, ['@p', '@a', '@r', '@s', '@e', '@n'], true)) {
+    if (!isset(MC_SELECTORS['@' . $letter])) {
         $problems[] = doctor_problem('error', '@' . $letter . ' is not a real selector',
             'Minecraft has @p (nearest player), @a (all players), @r (random player), @s (yourself) and @e (all entities).',
             'Replace @' . $letter . ' with the one you meant. @e is the usual choice for mobs.');
@@ -359,7 +359,7 @@ function doctor_check_selector(string $token, string $version): array
             'The selector arguments Minecraft understands are ' . implode(', ', array_slice(SELECTOR_ARGS, 0, 8)) . ' and a few more.',
             $alt ? 'Did you mean ' . $alt . '?' : 'Remove it, or check the spelling.');
     }
-    if (isset($args['type']) && $letter !== 'e' && $letter !== 'n') {
+    if (isset($args['type']) && !empty(MC_SELECTORS['@' . $letter]['players_only'])) {
         $problems[] = doctor_problem('warn', 'type= only works on entity selectors',
             '@' . $letter . ' already only matches players, so filtering by type has no effect.',
             'Use @e[type=' . ltrim($args['type'], '!') . '] to select that entity.');
@@ -871,10 +871,7 @@ function doctor_say_target(string $t): string
     if ($t === '') return 'nobody in particular';
     if ($t[0] !== '@') return 'the player ' . $t;
 
-    $base = [
-        '@p' => 'the nearest player', '@a' => 'every player', '@r' => 'a random player',
-        '@s' => 'whoever runs the command', '@e' => 'every entity', '@n' => 'the nearest entity',
-    ][substr($t, 0, 2)] ?? 'a target';
+    $base = MC_SELECTORS[substr($t, 0, 2)]['says'] ?? 'a target';
 
     if (!preg_match('/\[(.*)\]$/s', $t, $m)) return $base;
 

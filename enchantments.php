@@ -132,8 +132,19 @@ ui_head('Enchantment Hub', '', $css);
         <?php }, 'purple'); ?>
 
         <?php ui_card('4. Item details', function () { ?>
+          <div class="field">
+            <label>Who gets it</label>
+            <div class="pill-row" style="margin-bottom:8px" id="eh-target-quick">
+              <?php foreach (MC_SELECTORS as $sel => $meta): if (empty($meta['quick'])) continue; ?>
+                <button type="button" class="pill<?= $sel === '@p' ? ' active' : '' ?>" data-eh-target="<?= e($sel) ?>">
+                  <?= e($sel) ?> <span class="muted"><?= e($meta['label']) ?></span>
+                </button>
+              <?php endforeach; ?>
+            </div>
+            <input id="eh-target" value="@p" oninput="ehRebuild()" placeholder="@p, or a player name">
+            <div class="hint" id="eh-target-says"></div>
+          </div>
           <div class="row">
-            <?= ui_field('Target', '<input id="eh-target" value="@p" oninput="ehRebuild()">') ?>
             <?= ui_field('Count', '<input id="eh-count" type="number" min="1" max="6400" value="1" oninput="ehRebuild()">') ?>
           </div>
           <div class="row">

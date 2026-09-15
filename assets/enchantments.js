@@ -220,6 +220,12 @@
     var card = e.target.closest('[data-eh-item]');
     if (card && !card.classList.contains('locked')) {
       selectItem(card.dataset.ehItem, card.dataset.ehSlot);
+      return;
+    }
+    var chip = e.target.closest('[data-eh-target]');
+    if (chip) {
+      el('eh-target').value = chip.dataset.ehTarget;
+      ehRebuild();
     }
   });
 
@@ -239,6 +245,21 @@
 
   window.ehSetLore = function (i, value) { state.loreLines[i] = value; ehRebuild(); };
 
+  /* ── TARGET ───────────────────────────────────── */
+  function renderTargetSays(check) {
+    var says = el('eh-target-says');
+    if (!says) return;
+    var icon = check.level === 'error' ? '⛔' : (check.level === 'warn' ? '⚠' : '✓');
+    var color = check.level === 'error' ? 'var(--red)' : (check.level === 'warn' ? 'var(--gold)' : 'var(--green)');
+    says.innerHTML = '<span style="color:' + color + '">' + icon + '</span> ' + esc(check.says);
+
+    // A quick chip stays lit only while the field still holds its value.
+    var current = (el('eh-target').value || '').trim();
+    document.querySelectorAll('[data-eh-target]').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.ehTarget === current);
+    });
+  }
+
   /* ── BUILD + PREVIEW ──────────────────────────── */
   window.ehRebuild = function () {
     var out = el('out-ench');
@@ -250,7 +271,13 @@
       return;
     }
 
-    var target = (el('eh-target').value || '@p').trim();
+    var target = (el('eh-target').value || '').trim();
+    var targetCheck = MC.validateTarget(target);
+    renderTargetSays(targetCheck);
+    if (!targetCheck.ok) {
+      MC.setCommand(out, '', { warnings: [{ level: 'error', text: targetCheck.says }], tab: 'enchant' });
+      return;
+    }
     var count = Math.max(1, Math.min(6400, parseInt(el('eh-count').value, 10) || 1));
     var name = (el('eh-name').value || '').trim();
     var lore = state.loreLines.map(function (l) { return l.trim(); }).filter(Boolean)
@@ -258,6 +285,7 @@
     var enchants = Object.keys(state.enabled).map(function (id) { return { id: id, lvl: state.enabled[id] }; });
 
     var w = [];
+    if (targetCheck.level === 'warn') w.push({ text: targetCheck.says });
     var conf = currentConflicts();
     conf.lines.forEach(function (l) { w.push({ text: l + ' The command below still works, but this could not be produced with an anvil or enchanting table.' }); });
 

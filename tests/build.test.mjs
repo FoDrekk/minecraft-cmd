@@ -78,6 +78,51 @@ await page.click('[data-clear="water"]');
 await page.waitForTimeout(40);
 has('clear: water and lava', await cmd('out-clear'), 'air replace water');
 
+// ── CLEAR AREA: "around me" region mode ─────────
+// Corner mode stays the default, so the command above is untouched until
+// the player opts into the guided mode.
+await page.goto(`${BASE}/build.php?t=clear`);
+await page.waitForFunction(() => document.querySelector('#out-clear [data-cmd]').textContent);
+check('clear: around-me fields are hidden until chosen', await page.locator('#clr-quick-wrap').isHidden(), true);
+
+await page.click('[data-clr-region="quick"]');
+await page.waitForTimeout(60);
+check('clear: around me centres a 5x3x5 box on the player',
+  await cmd('out-clear'), '/fill ~-2 ~-1 ~-2 ~2 ~1 ~2 air');
+check('clear: the corner grid is swapped out', await page.locator('#clr-corners-wrap .region').isHidden(), true);
+check('clear: the volume readout stays visible in around-me mode',
+  await page.locator('#clr-volume').isVisible(), true);
+has('clear: volume reports the real size', await page.textContent('#clr-volume'), '5 × 3 × 5');
+
+// Presets are exact footprints — both corners are inclusive.
+await page.click('[data-clr-size="3"]');
+await page.waitForTimeout(60);
+check('clear: 3x3 preset', await cmd('out-clear'), '/fill ~-1 ~-1 ~-1 ~1 ~1 ~1 air');
+await page.click('[data-clr-size="10"]');
+await page.waitForTimeout(60);
+check('clear: 10x10 preset spans exactly 10 blocks', await cmd('out-clear'), '/fill ~-4 ~-1 ~-4 ~5 ~1 ~5 air');
+has('clear: 10x10 volume is 10 across', await page.textContent('#clr-volume'), '10 × 3 × 10');
+
+await page.selectOption('#clr-dir', 'up');
+await page.waitForTimeout(60);
+check('clear: above me starts at foot level', await cmd('out-clear'), '/fill ~-4 ~ ~-4 ~5 ~2 ~5 air');
+await page.selectOption('#clr-dir', 'down');
+await page.waitForTimeout(60);
+check('clear: below me ends at foot level', await cmd('out-clear'), '/fill ~-4 ~-2 ~-4 ~5 ~ ~5 air');
+
+// The whole point of the mode: "clear dirt around me".
+await page.selectOption('#clr-dir', 'around');
+await page.click('[data-clear="one"]');
+await page.waitForTimeout(60);
+await page.selectOption('#clr-block', 'dirt');
+await page.waitForTimeout(60);
+check('clear: one block type around me', await cmd('out-clear'), '/fill ~-4 ~-1 ~-4 ~5 ~1 ~5 air replace dirt');
+
+await page.click('[data-clr-region="corners"]');
+await page.waitForTimeout(60);
+check('clear: switching back restores the corner grid',
+  await page.locator('#clr-corners-wrap .region').isVisible(), true);
+
 // ── REPLACE ─────────────────────────────────────
 await page.goto(`${BASE}/build.php?t=replace`);
 await page.waitForFunction(() => document.querySelector('#out-replace [data-cmd]').textContent);

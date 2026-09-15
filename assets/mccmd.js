@@ -8,11 +8,12 @@
 (function (global) {
   'use strict';
 
-  var D = global.MC_DATA || { versions: {}, syntax: {}, features: {}, current: '26.2' };
+  var D = global.MC_DATA || { versions: {}, syntax: {}, features: {}, selectors: {}, current: '26.2' };
 
   var MC = {
     versions: D.versions,
     features: D.features,
+    selectors: D.selectors || {},
     _cur: D.current
   };
 
@@ -35,6 +36,50 @@
     document.cookie = 'mc_version=' + encodeURIComponent(id) + ';path=/;max-age=31536000;samesite=lax';
     try { localStorage.setItem('mc_version', id); } catch (e) {}
     document.dispatchEvent(new CustomEvent('mc:version', { detail: { version: id } }));
+  };
+
+  /* ── TARGET VALIDATION ───────────────────────────
+     Shared by every builder with a "who gets this?" field. The selector
+     table comes from lib/mc.php via MC_DATA, the same one Command
+     Doctor validates against, so the two can never disagree.
+
+     Returns { ok, level:'ok'|'warn'|'error', says } — `says` is plain
+     language ("the nearest player"), ready to show under the field. */
+  var PLAYER_NAME = /^[A-Za-z0-9_]{3,16}$/;
+
+  MC.validateTarget = function (raw) {
+    var t = String(raw == null ? '' : raw).trim();
+    if (!t) return { ok: false, level: 'error', says: 'Choose who this is for — a selector like @p, or a player name.' };
+
+    if (t.charAt(0) === '@') {
+      var m = t.match(/^@([a-z])(\[.*\])?$/);
+      if (!m) {
+        // The usual mix-up: a player name written with a selector's @.
+        if (PLAYER_NAME.test(t.slice(1))) {
+          return { ok: false, level: 'error',
+                   says: 'Player names go in without the @ — use ' + t.slice(1) + '. The @ is only for selectors like @p.' };
+        }
+        return { ok: false, level: 'error',
+                 says: '“' + t + '” is not a valid selector. They are one letter after @, with optional [arguments].' };
+      }
+      var sel = MC.selectors['@' + m[1]];
+      if (!sel) {
+        return { ok: false, level: 'error',
+                 says: '@' + m[1] + ' is not a real selector. Use ' + Object.keys(MC.selectors).join(', ') + '.' };
+      }
+      return { ok: true, level: 'ok', says: sel.says + (m[2] ? ', filtered by the arguments you gave' : '') };
+    }
+
+    // A plain player name. Java names are 3-16 of [A-Za-z0-9_]; anything
+    // else still runs if it is a real name (older or Bedrock gamertags),
+    // so this warns rather than blocks.
+    if (PLAYER_NAME.test(t)) return { ok: true, level: 'ok', says: 'the player ' + t };
+    if (/\s/.test(t)) {
+      return { ok: true, level: 'warn',
+               says: 'Names with spaces need quotes in a command, and only Bedrock gamertags have them.' };
+    }
+    return { ok: true, level: 'warn',
+             says: 'Java usernames are 3-16 characters of letters, numbers and underscores. Double-check this one.' };
   };
 
   /* ── SNBT ────────────────────────────────────────
