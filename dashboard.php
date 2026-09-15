@@ -173,22 +173,6 @@ $favs     = $dbOk ? favGet()        : [];
       </div>
     </a>
 
-    <a href="sequencer.php" class="tool-card" style="--accent:var(--blue)">
-      <div class="tool-card-head">
-        <div class="tool-icon" style="background:rgba(91,156,246,0.1);border:1px solid rgba(91,156,246,0.2)">📋</div>
-        <div><div class="tool-name" style="color:var(--blue)">Command Sequencer</div><div class="tool-desc">drag-and-drop · delay support · export as function</div></div>
-      </div>
-      <div class="tool-body">
-        <div class="tool-chips">
-          <span class="tool-chip">Drag &amp; Drop</span><span class="tool-chip">Delay</span>
-          <span class="tool-chip">.mcfunction</span><span class="tool-chip">Batch export</span>
-        </div>
-      </div>
-      <div class="tool-footer">
-        <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">Chain commands</span>
-        <span class="tool-open-btn">Open →</span>
-      </div>
-    </a>
 
     <a href="nbt.php" class="tool-card" style="--accent:var(--purple)">
       <div class="tool-card-head">
@@ -207,90 +191,10 @@ $favs     = $dbOk ? favGet()        : [];
       </div>
     </a>
 
-    <a href="title.php" class="tool-card" style="--accent:var(--pink)">
-      <div class="tool-card-head">
-        <div class="tool-icon" style="background:rgba(232,111,168,0.1);border:1px solid rgba(232,111,168,0.2)">✍️</div>
-        <div><div class="tool-name" style="color:var(--pink)">Title Generator</div><div class="tool-desc">title/subtitle/actionbar · colour codes · timing</div></div>
-      </div>
-      <div class="tool-body">
-        <div class="tool-chips">
-          <span class="tool-chip">/title</span><span class="tool-chip">/subtitle</span>
-          <span class="tool-chip">/actionbar</span><span class="tool-chip">Colour codes</span>
-        </div>
-      </div>
-      <div class="tool-footer">
-        <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">On-screen text</span>
-        <span class="tool-open-btn">Open →</span>
-      </div>
-    </a>
 
-    <a href="firework.php" class="tool-card" style="--accent:var(--orange)">
-      <div class="tool-card-head">
-        <div class="tool-icon" style="background:rgba(232,132,74,0.1);border:1px solid rgba(232,132,74,0.2)">🎆</div>
-        <div><div class="tool-name" style="color:var(--orange)">Firework Builder</div><div class="tool-desc">shape, colours, effects, flight height</div></div>
-      </div>
-      <div class="tool-body">
-        <div class="tool-chips">
-          <span class="tool-chip">Shapes</span><span class="tool-chip">Colours</span>
-          <span class="tool-chip">Trail</span><span class="tool-chip">Flicker</span><span class="tool-chip">Power</span>
-        </div>
-      </div>
-      <div class="tool-footer">
-        <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">Celebrations</span>
-        <span class="tool-open-btn">Open →</span>
-      </div>
-    </a>
 
-    <a href="scoreboard.php" class="tool-card" style="--accent:var(--teal)">
-      <div class="tool-card-head">
-        <div class="tool-icon" style="background:rgba(56,196,184,0.1);border:1px solid rgba(56,196,184,0.2)">📊</div>
-        <div><div class="tool-name" style="color:var(--teal)">Scoreboard</div><div class="tool-desc">objectives, display, team management</div></div>
-      </div>
-      <div class="tool-body">
-        <div class="tool-chips">
-          <span class="tool-chip">/scoreboard</span><span class="tool-chip">Objectives</span>
-          <span class="tool-chip">Teams</span><span class="tool-chip">Display</span>
-        </div>
-      </div>
-      <div class="tool-footer">
-        <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">Minigames & stats</span>
-        <span class="tool-open-btn">Open →</span>
-      </div>
-    </a>
 
-    <a href="sign.php" class="tool-card" style="--accent:#a8d8a0">
-      <div class="tool-card-head">
-        <div class="tool-icon" style="background:rgba(168,216,160,0.1);border:1px solid rgba(168,216,160,0.2)">🪧</div>
-        <div><div class="tool-name" style="color:#a8d8a0">Sign Editor</div><div class="tool-desc">4-line sign text · front &amp; back · colour support</div></div>
-      </div>
-      <div class="tool-body">
-        <div class="tool-chips">
-          <span class="tool-chip">4 lines</span><span class="tool-chip">Front/Back</span>
-          <span class="tool-chip">Colour</span><span class="tool-chip">Glow ink</span>
-        </div>
-      </div>
-      <div class="tool-footer">
-        <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">Custom signs</span>
-        <span class="tool-open-btn">Open →</span>
-      </div>
-    </a>
 
-    <a href="book.php" class="tool-card" style="--accent:#b8b0e8">
-      <div class="tool-card-head">
-        <div class="tool-icon" style="background:rgba(184,176,232,0.1);border:1px solid rgba(184,176,232,0.2)">📖</div>
-        <div><div class="tool-name" style="color:#b8b0e8">Book Writer</div><div class="tool-desc">multi-page book · author · title · formatting</div></div>
-      </div>
-      <div class="tool-body">
-        <div class="tool-chips">
-          <span class="tool-chip">Pages</span><span class="tool-chip">Author</span>
-          <span class="tool-chip">Formatting</span><span class="tool-chip">Give command</span>
-        </div>
-      </div>
-      <div class="tool-footer">
-        <span style="font-size:11px;color:var(--text3);font-family:var(--mono)">Written books</span>
-        <span class="tool-open-btn">Open →</span>
-      </div>
-    </a>
 
   </div><!-- /tools-grid -->
 

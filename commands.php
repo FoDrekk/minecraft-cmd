@@ -40,7 +40,10 @@ $TASKS = [
         'bossbar'    => ['📛', 'Boss bar',  'red'],
         'team'       => ['🏳️', 'Team',      'teal'],
     ],
-    'Advanced' => [
+    // Not "Advanced" — these are ordinary tools once you know what they
+    // are for, and hiding them behind that label only made them look
+    // harder than they are.
+    'Logic & data' => [
         'execute'    => ['⛓️', 'Execute',   'green'],
         'attribute'  => ['📈', 'Attribute', 'blue'],
         'data'       => ['🗂️', 'Data',      'gold'],
@@ -53,7 +56,7 @@ $TASKS = [
 // A task only appears once its partial exists, so the rail is never a
 // dead link — the same rule nav.php uses for sections.
 $PANEL_PARTIALS = [];
-foreach (['Text & display', 'Advanced'] as $group) {
+foreach (['Text & display', 'Logic & data'] as $group) {
     foreach (array_keys($TASKS[$group] ?? []) as $id) {
         if (is_file(__DIR__ . '/lib/panels/' . $id . '.php')) $PANEL_PARTIALS[] = $id;
         else unset($TASKS[$group][$id]);

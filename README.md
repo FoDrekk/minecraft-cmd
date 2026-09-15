@@ -85,8 +85,8 @@ rejected.
 ```
 index.php commands.php build.php doctor.php     pages
 knowledge.php farms.php mystuff.php tools.php
-kit.php sequencer.php nbt.php title.php         the original generators
-firework.php scoreboard.php sign.php book.php
+enchantments.php
+kit.php nbt.php                                 the item builders
 
 lib/mc.php          version registry and syntax profiles
 lib/ui.php          shared render helpers
