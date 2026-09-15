@@ -32,8 +32,21 @@ const PAGES = [
   'index.php', 'tools.php', 'commands.php', 'build.php', 'doctor.php',
   'doctor.php?mode=explain', 'knowledge.php?t=materials', 'knowledge.php?t=palette',
   'knowledge.php?t=tips', 'knowledge.php?t=ideas', 'farms.php', 'farms.php?farm=iron',
-  'mystuff.php', 'kit.php', 'sequencer.php', 'nbt.php', 'title.php', 'firework.php',
-  'scoreboard.php', 'sign.php', 'book.php', 'dashboard.php',
+  'mystuff.php', 'kit.php', 'nbt.php', 'enchantments.php', 'dashboard.php',
+];
+
+// The specialist generators that were cut from the product, each with the
+// element id its own output surface used. They must be gone, not merely
+// unlinked. Note the PHP dev server falls back to index.php for a missing
+// file rather than returning 404, so removal is proved by the generator's
+// own markup being absent — which holds on a real server too.
+const REMOVED_PAGES = [
+  ['book.php', 'bk-output', 'book writer'],
+  ['firework.php', 'fw-output', 'firework'],
+  ['sign.php', 'sign-output', 'sign text'],
+  ['title.php', 'title-outputs', 'title generator'],
+  ['scoreboard.php', 'sb-cmd-list', 'scoreboard'],
+  ['sequencer.php', 'output-area', 'command sequencer'],
 ];
 
 for (const p of PAGES) {
@@ -43,6 +56,21 @@ for (const p of PAGES) {
   check(`${p}: loads`, res.status(), 200);
   check(`${p}: no JS errors`, jsErrors.join(' | '), '');
   has(`${p}: has navigation`, await page.content(), 'class="topnav"');
+}
+
+for (const [p, marker, query] of REMOVED_PAGES) {
+  const r = await page.request.get(`${BASE}/${p}`);
+  const body = await r.text();
+  check(`${p}: no longer serves its generator`, body.includes(marker), false);
+
+  // Searching for it by name must not offer it any more. The query is one
+  // the tool used to rank first for, so an empty-ish result is meaningful
+  // rather than vacuous.
+  const hrefs = await page.evaluate(async q => {
+    const res = await MC.api('search', { q });
+    return (res.rows || []).map(x => x.href).join(' ');
+  }, query);
+  check(`${p}: "${query}" no longer finds it`, hrefs.includes(p), false);
 }
 
 // ── NAVIGATION LINKS ────────────────────────────

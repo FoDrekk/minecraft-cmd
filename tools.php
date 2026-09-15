@@ -5,18 +5,48 @@
 require_once __DIR__ . '/lib/ui.php';
 require_once __DIR__ . '/lib/registry.php';
 
+// The Command Library leads with intent, not with command names: the
+// handful of things players actually open this page to do, then the two
+// item builders. Everything else keeps its category grouping below, so
+// no working tool becomes unreachable just because it is not headline
+// material. Ids are listed explicitly because the lead groups cut across
+// registry categories — "Clear Area" is a build tool, for instance.
+$LIBRARY = [
+    'Quick commands' => [
+        ['clear-area', 'teleport', 'give', 'kill', 'time', 'gamemode', 'effect'],
+        'The seven you reach for most.',
+    ],
+    'Enhance an item' => [
+        ['enchantments'],
+        'Pick an item, take the recommended enchantments, check conflicts, copy the command.',
+    ],
+    'Builders' => [
+        ['kit', 'nbt'],
+        'Build a whole loadout, or one custom item.',
+    ],
+];
+
 $groups = [
-    'command' => ['Commands',       'Task-based builders for the commands players use most.'],
-    'enchant' => ['Enchantment Hub', 'Select an item, see recommended enchantments, check conflicts, and generate the /give command.'],
+    'command' => ['More commands',  'Every other command builder, grouped by what it acts on.'],
     'build'   => ['Build tools',    'Areas, coordinates and the block-placing commands.'],
     'doctor'  => ['Fix & explain',  'Paste a command in and find out what is wrong with it.'],
-    'tool'    => ['Item & display', 'Custom items, text, fireworks and scoreboards.'],
+    'tool'    => ['Saved work',     'Everything you have kept.'],
     'knowledge' => ['Knowledge',    'Blocks, palettes, techniques and what to build next.'],
     'farm'    => ['Farms',          'Step-by-step farm guides.'],
 ];
 
+$byId = [];
+foreach (registry_tools() as $t) $byId[$t['id']] = $t;
+
+// Anything already shown in a lead group is not repeated further down.
+$shown = [];
+foreach ($LIBRARY as [$ids, $_]) foreach ($ids as $id) $shown[$id] = true;
+
 $byCat = [];
-foreach (registry_tools() as $t) $byCat[$t['cat']][] = $t;
+foreach (registry_tools() as $t) {
+    if (isset($shown[$t['id']])) continue;
+    $byCat[$t['cat']][] = $t;
+}
 
 $css = <<<CSS
 .tools-page { max-width:1240px; margin:0 auto; padding:20px 24px 56px; position:relative; z-index:1 }
@@ -43,6 +73,24 @@ ui_head('Tools', '', $css);
     <input type="text" id="tool-filter" placeholder="Filter tools…" autocomplete="off">
     <span class="muted" style="font-size:12px" id="tool-count"></span>
   </div>
+
+  <?php foreach ($LIBRARY as $title => [$ids, $desc]):
+      $items = array_values(array_filter(array_map(fn($id) => $byId[$id] ?? null, $ids)));
+      if (!$items) continue; ?>
+  <div class="tools-group" data-group>
+    <div class="tools-group-head">
+      <div class="tools-group-title"><?= e($title) ?></div>
+      <div class="tools-group-desc"><?= e($desc) ?></div>
+    </div>
+    <div class="tile-grid">
+      <?php foreach ($items as $t): ?>
+        <div data-tool data-search="<?= e(strtolower($t['title'] . ' ' . $t['desc'] . ' ' . $t['keywords'])) ?>">
+          <?= ui_tile($t['href'], $t['icon'], $t['title'], $t['desc'], $t['accent']) ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+  <?php endforeach; ?>
 
   <?php foreach ($groups as $cat => [$title, $desc]):
       if (empty($byCat[$cat])) continue; ?>

@@ -204,46 +204,16 @@ function registry_tools(): array
          'desc' => 'Step-by-step farm guides with material checklists',
          'keywords' => 'farm farms automatic iron gold xp mob creeper villager crops afk resource'],
 
-        // ── Existing specialist generators ────────
+        // ── Builders ──────────────────────────────
         ['id' => 'kit', 'icon' => '🎒', 'title' => 'Kit Builder', 'cat' => 'tool',
          'href' => 'kit.php', 'accent' => 'gold',
          'desc' => 'Build a full loadout and hand it out in one go',
          'keywords' => 'kit loadout starter pvp gear set armour armor equipment pack'],
 
-        ['id' => 'sequencer', 'icon' => '📋', 'title' => 'Command Sequencer', 'cat' => 'tool',
-         'href' => 'sequencer.php', 'accent' => 'blue',
-         'desc' => 'Chain several commands into one runnable list',
-         'keywords' => 'sequence chain multiple commands batch list order run'],
-
         ['id' => 'nbt', 'icon' => '🔧', 'title' => 'Custom Item Builder', 'cat' => 'tool',
          'href' => 'nbt.php', 'accent' => 'purple',
          'desc' => 'Custom name, lore, enchants and item components',
          'keywords' => 'nbt components custom item name lore enchantments unbreakable rename'],
-
-        ['id' => 'title', 'icon' => '✍️', 'title' => 'Title Generator', 'cat' => 'tool',
-         'href' => 'title.php', 'accent' => 'pink',
-         'desc' => 'Big on-screen titles, subtitles and action bars',
-         'keywords' => 'title subtitle actionbar screen text announcement message big text'],
-
-        ['id' => 'firework', 'icon' => '🎆', 'title' => 'Firework Designer', 'cat' => 'tool',
-         'href' => 'firework.php', 'accent' => 'red',
-         'desc' => 'Design rockets — shapes, colours, trails, flight',
-         'keywords' => 'firework rocket explosion colours colors elytra boost celebration'],
-
-        ['id' => 'scoreboard', 'icon' => '📊', 'title' => 'Scoreboard', 'cat' => 'tool',
-         'href' => 'scoreboard.php', 'accent' => 'blue',
-         'desc' => 'Objectives, scores, display slots and teams',
-         'keywords' => 'scoreboard objective score sidebar display team points tracking stats'],
-
-        ['id' => 'sign', 'icon' => '🪧', 'title' => 'Sign Text', 'cat' => 'tool',
-         'href' => 'sign.php', 'accent' => 'orange',
-         'desc' => 'Coloured, glowing sign text placed by command',
-         'keywords' => 'sign text coloured glowing shop label hanging sign'],
-
-        ['id' => 'book', 'icon' => '📖', 'title' => 'Book Writer', 'cat' => 'tool',
-         'href' => 'book.php', 'accent' => 'gold',
-         'desc' => 'Written books with multiple formatted pages',
-         'keywords' => 'book written pages rules lore story guide server rules'],
 
         ['id' => 'mystuff', 'icon' => '⭐', 'title' => 'My Stuff', 'cat' => 'tool',
          'href' => 'mystuff.php', 'accent' => 'gold',
