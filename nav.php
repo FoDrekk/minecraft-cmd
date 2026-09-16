@@ -114,3 +114,12 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 </script>
+<!--
+  Explicit second grid region for `body { display:grid; grid-template-columns:220px 1fr }`
+  (style.php). .sidebar above is the first (and only other in-flow) child, so it
+  auto-places into column 1; everything a page renders after this include — whether
+  that's one wrapper div or several (.page-header + .content) — must land inside a
+  single column-2 item, or extra top-level blocks wrap into column 1 behind the
+  sidebar. Every page that includes this file closes </main> before </body>.
+-->
+<main class="page-shell">

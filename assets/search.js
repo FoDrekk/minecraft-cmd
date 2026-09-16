@@ -52,11 +52,9 @@
     }).join('');
   }
 
-  function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  // Was a second, independent copy of the same escaping rules already in
+  // mccmd.js (loaded before this file, so it's always available here).
+  function esc(s) { return MC.escapeHtml(s); }
 
   function query() {
     var q = input.value.trim();
