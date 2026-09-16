@@ -96,9 +96,16 @@ details.adv .adv-body { padding-top:12px }
 CSS;
 
 ui_head('Enchantment Hub', '', $css);
+
+// Check for preset parameter
+$presetId = $_GET['preset'] ?? '';
+$presetItem = $_GET['item'] ?? '';
 ?>
 <div class="eh-page">
-  <?php ui_page_header('✨', 'Enchantment Hub', 'Build and customise enchanted Minecraft items with conflict checking and command generation.'); ?>
+  <?php ui_page_header('✨', 'Enhance Item', 'Choose an item, pick enchantments, check conflicts, generate the command.'); ?>
+
+  <!-- Step indicator -->
+  <?php ui_step_indicator(['Target', 'Item', 'Enchant', 'Preview'], 1, 'eh-steps'); ?>
 
   <div class="eh-layout">
     <!-- LEFT: item picker + recommended + customize -->
@@ -131,21 +138,16 @@ ui_head('Enchantment Hub', '', $css);
           <div class="eh-ench-list" id="eh-ench-list"></div>
         <?php }, 'purple'); ?>
 
-        <?php ui_card('4. Item details', function () { ?>
-          <div class="field">
-            <label>Who gets it</label>
-            <div class="pill-row" style="margin-bottom:8px" id="eh-target-quick">
-              <?php foreach (MC_SELECTORS as $sel => $meta): if (empty($meta['quick'])) continue; ?>
-                <button type="button" class="pill<?= $sel === '@p' ? ' active' : '' ?>" data-eh-target="<?= e($sel) ?>">
-                  <?= e($sel) ?> <span class="muted"><?= e($meta['label']) ?></span>
-                </button>
-              <?php endforeach; ?>
-            </div>
-            <input id="eh-target" value="@p" oninput="ehRebuild()" placeholder="@p, or a player name">
-            <div class="hint" id="eh-target-says"></div>
-          </div>
+        <?php ui_card('4. Target & details', function () { ?>
           <div class="row">
+            <?= ui_field('Target', '<input id="eh-target" value="@p" placeholder="@p, @s, @a, or player name" oninput="ehRebuild()">') ?>
             <?= ui_field('Count', '<input id="eh-count" type="number" min="1" max="6400" value="1" oninput="ehRebuild()">') ?>
+          </div>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
+            <button class="chip" onclick="document.getElementById('eh-target').value='@s';ehRebuild()">@s (self)</button>
+            <button class="chip" onclick="document.getElementById('eh-target').value='@p';ehRebuild()">@p (nearest)</button>
+            <button class="chip" onclick="document.getElementById('eh-target').value='@a';ehRebuild()">@a (all)</button>
+            <button class="chip" onclick="document.getElementById('eh-target').value='@r';ehRebuild()">@r (random)</button>
           </div>
           <div class="row">
             <?= ui_field('Custom name (optional)', '<input id="eh-name" placeholder="e.g. Boss Killer" oninput="ehRebuild()">') ?>
@@ -189,6 +191,9 @@ var ENCH_RECOMMENDED   = <?php
     }
     echo json_encode($bySlot);
 ?>;
+var ENCH_PRESETS        = <?= json_encode(enchant_presets()) ?>;
+var ENCH_PRESET_ID      = <?= json_encode($presetId) ?>;
+var ENCH_PRESET_ITEM    = <?= json_encode($presetItem) ?>;
 </script>
 <script src="assets/enchantments.js"></script>
 <?php ui_foot(); ?>

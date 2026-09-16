@@ -107,6 +107,8 @@
     grid.innerHTML = rows.map(function (e) {
       var stars = '★'.repeat(e.tier) + '☆'.repeat(5 - e.tier);
       var gateNote = e.gate ? '<br><b>Requires:</b> Java 1.21+' : '';
+      var useLink = '<a class="btn btn-gold btn-sm" href="enchantments.php" style="text-decoration:none;margin-right:6px">✨ Enhance Item</a>';
+      var saveLink = '<button class="btn btn-ghost btn-sm" onclick="MC.copy(\'' + esc(e.id) + '\');event.stopPropagation()">📋 Copy ID</button>';
       return '<div class="ench-know-card">' +
         '<div class="ench-know-body">' +
         '<div class="ench-know-name">' + esc(e.name) + '</div>' +
@@ -118,7 +120,7 @@
         '<b>Conflicts:</b> ' + (e.incompatible.length ? esc(e.incompatible.join(', ')) : 'None') +
         gateNote +
         '</div>' +
-        '<div style="margin-top:6px"><a class="ench-know-link" href="enchantments.php">✨ Open in Enchantment Hub →</a></div>' +
+        '<div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap">' + useLink + saveLink + '</div>' +
         '</div></div>';
     }).join('');
   }

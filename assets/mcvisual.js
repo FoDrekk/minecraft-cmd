@@ -1,14 +1,9 @@
 /* ================================================
    mcvisual.js — centralized Minecraft visual renderer
    ------------------------------------------------
-   No bundled Minecraft textures exist in this project (no asset
-   pipeline, and downloading Mojang's copyrighted texture packs was
-   out of scope — see the PR description). Every page that needs to
-   show an item or block uses THIS renderer instead of inventing its
-   own: a material-accurate colour tile plus a small hand-drawn SVG
-   glyph for equipment, or the Material Library's own approximate
-   block colour for blocks. Swapping in real textures later means
-   changing the two render functions here — nothing else.
+   Every page that needs to show an item or block uses
+   THIS renderer. Now integrates with textures.js for
+   CSS pixel-art textures with SVG glyph fallback.
    ================================================ */
 (function (global) {
   'use strict';
@@ -55,10 +50,16 @@
 
   /**
    * A tile representing an equipment item (weapon/tool/armour).
-   * category: one of the EQUIPMENT_ICONS keys (a "slot", e.g. "Sword").
-   * size: 'lg' | 'md' | 'sm' — maps to the .mc-tile-* CSS classes (style.php).
+   * Tries CSS pixel-art texture first, falls back to SVG glyph.
    */
   function equipmentTile(category, itemId, size) {
+    // Try pixel-art texture first
+    if (MC.tex && MC.tex.has(itemId)) {
+      var texSize = size === 'sm' ? 'sm' : (size === 'md' ? 'md' : 'lg');
+      return '<div class="mc-tile mc-tile-' + (size || 'lg') + ' mc-tile-tex">' +
+        MC.tex.render(itemId, texSize) + '</div>';
+    }
+    // Fallback to SVG glyph
     var bg = equipmentColorFor(itemId);
     var glyph = EQUIPMENT_ICONS[category] || EQUIPMENT_ICONS.Sword;
     return '<div class="mc-tile mc-tile-' + (size || 'lg') + '" style="background:' + bg + '">' +
@@ -66,131 +67,67 @@
   }
 
   /* ── BLOCKS (Material Library) ───────────────────
-     Blocks already carry a real approximate colour in
-     lib/data/blocks.php ($hex) — this just renders it consistently. */
+     Blocks carry a real approximate colour — try texture first. */
   function blockTile(hex, size, title) {
+    // Try pixel-art texture if title (block name) maps to a texture
+    if (title && MC.tex) {
+      var blockId = title.toLowerCase().replace(/\s+/g, '_');
+      if (MC.tex.has(blockId)) {
+        var texSize = size === 'sm' ? 'sm' : (size === 'md' ? 'md' : 'lg');
+        return '<div class="mc-block-tile mc-tile-' + (size || 'md') + ' mc-tile-tex" title="' + esc(title || '') + '">' +
+          MC.tex.render(blockId, texSize) + '</div>';
+      }
+    }
     return '<div class="mc-block-tile mc-tile-' + (size || 'md') + '" style="background:' + esc(hex || '#3a3a3a') + '"' +
       (title ? ' title="' + esc(title) + '"' : '') + '></div>';
   }
 
-  /* ── TEXTURE RESOLUTION ──────────────────────────
-     One lookup path for every Minecraft id in the app. The manifest and
-     the block palette both come from the server (lib/textures.php and
-     lib/data/blocks.php via MC_DATA), so "what does this id look like?"
-     is answered in exactly one place instead of per page.
-
-     Order, most authentic first:
-       1. asset      — a real file dropped in assets/textures/
-       2. alias      — a real file found under a second common id
-       3. equipment  — our own drawn glyph, tinted by material tier
-       4. block      — the Material Library's approximate colour
-       5. fallback   — neutral tile, so nothing ever renders broken
-
-     `source` is carried through to the DOM so callers (and tests) can
-     tell an authentic texture from a stand-in. Nothing here pretends a
-     fallback is a real Minecraft texture. */
-  var TEXTURES = (MC.data && MC.data.textures) || {};
-  var BLOCK_HEX = (MC.data && MC.data.blockHex) || {};
-
-  var ALIASES = {
-    grass: 'grass_block',
-    redstone_dust: 'redstone',
-    wood: 'oak_planks',
-    planks: 'oak_planks',
-    slab: 'oak_slab',
-    fence: 'oak_fence',
-    door: 'spruce_door'
-  };
-
-  function normaliseId(id) {
-    return String(id == null ? '' : id)
-      .toLowerCase().trim()
-      .replace(/^minecraft:/, '')
-      .replace(/[^a-z0-9_]+/g, '_')
-      .replace(/^_+|_+$/g, '');
-  }
-
-  /** Which equipment glyph an id should use, if any. */
-  function categoryForId(id) {
-    // pickaxe before axe: alternation is tried left to right, so
-    // diamond_pickaxe must not come back as an Axe.
-    var m = id.match(/_(sword|pickaxe|axe|shovel|hoe|helmet|chestplate|leggings|boots)$/);
-    if (m) return m[1].charAt(0).toUpperCase() + m[1].slice(1);
-    if (id === 'bow') return 'Bow';
-    if (id === 'crossbow') return 'Crossbow';
-    if (id === 'trident') return 'Trident';
-    if (id === 'mace') return 'Mace';
-    if (id === 'shield') return 'Shield';
-    if (id === 'elytra') return 'Elytra';
-    if (id === 'fishing_rod') return 'Fishing Rod';
-    return null;
-  }
-
   /**
-   * Resolve one Minecraft id to something renderable.
-   * opts.category forces an equipment glyph (the Enchantment Hub knows
-   * the slot already, so it does not need to be re-derived from the id).
-   * Returns { id, src, hex, category, source }.
+   * Full item card with texture, name, and optional properties.
+   * Used in Knowledge, Kit Builder, and Item Builder.
    */
-  function resolve(id, opts) {
-    opts = opts || {};
-    var key = normaliseId(id);
-
-    if (TEXTURES[key]) return { id: key, src: TEXTURES[key], hex: null, category: null, source: 'asset' };
-
-    var alias = ALIASES[key];
-    if (alias && TEXTURES[alias]) {
-      return { id: alias, src: TEXTURES[alias], hex: null, category: null, source: 'alias' };
+  function itemCard(itemId, name, props, options) {
+    options = options || {};
+    var size = options.size || 'md';
+    var accent = options.accent || 'green';
+    var href = options.href || '';
+    var tag = href ? 'a' : 'div';
+    var hrefAttr = href ? ' href="' + esc(href) + '"' : '';
+    
+    var texHtml = '';
+    if (MC.tex && MC.tex.has(itemId)) {
+      texHtml = MC.tex.render(itemId, size);
+    } else {
+      // Fallback: colored square with first letter
+      var color = equipmentColorFor(itemId);
+      var initial = (name || itemId).charAt(0).toUpperCase();
+      texHtml = '<div class="mc-tile mc-tile-' + size + '" style="background:' + color + '">' +
+        '<span style="color:rgba(255,255,255,.85);font-weight:700;font-size:14px">' + esc(initial) + '</span></div>';
     }
 
-    var category = opts.category || categoryForId(key);
-    if (category) {
-      return { id: key, src: null, hex: equipmentColorFor(key), category: category, source: 'equipment' };
+    var propsHtml = '';
+    if (props && typeof props === 'object') {
+      for (var key in props) {
+        if (props.hasOwnProperty(key)) {
+          propsHtml += '<span class="mc-card-prop">' + esc(key) + ': ' + esc(props[key]) + '</span>';
+        }
+      }
     }
 
-    var hex = BLOCK_HEX[key] || (alias ? BLOCK_HEX[alias] : null);
-    if (hex) return { id: key, src: null, hex: hex, category: null, source: 'block' };
-
-    return { id: key, src: null, hex: null, category: null, source: 'fallback' };
-  }
-
-  /**
-   * Markup for one Minecraft id at a given size.
-   * size: 'sm' | 'md' | 'lg' | 'cell'. `label` becomes the accessible
-   * name; without one the tile is decorative and hidden from readers,
-   * because in every current caller the name is already adjacent text.
-   */
-  function render(id, opts) {
-    opts = opts || {};
-    var r = resolve(id, opts);
-    var size = opts.size || 'md';
-    var label = opts.label || '';
-    var a11y = label ? ' role="img" aria-label="' + esc(label) + '"' : ' aria-hidden="true"';
-    var title = label ? ' title="' + esc(label) + '"' : '';
-    var base = 'mc-visual mc-visual-' + esc(size) + ' mc-visual-' + r.source;
-
-    if (r.source === 'asset' || r.source === 'alias') {
-      return '<span class="' + base + '"' + a11y + title + '>' +
-        '<img src="' + esc(r.src) + '" alt="" loading="lazy" decoding="async"></span>';
-    }
-    if (r.source === 'equipment') {
-      var glyph = EQUIPMENT_ICONS[r.category] || EQUIPMENT_ICONS.Sword;
-      return '<span class="' + base + '" style="background:' + esc(r.hex) + '"' + a11y + title + '>' +
-        '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,.92)" stroke="rgba(255,255,255,.92)">' + glyph + '</svg></span>';
-    }
-    if (r.source === 'block') {
-      return '<span class="' + base + '" style="background:' + esc(r.hex) + '"' + a11y + title + '></span>';
-    }
-    return '<span class="' + base + '"' + a11y + title + '></span>';
+    return '<' + tag + ' class="mc-item-card" style="--card-accent:var(--' + esc(accent) + ')"' + hrefAttr + '>' +
+      '<div class="mc-card-visual">' + texHtml + '</div>' +
+      '<div class="mc-card-info">' +
+        '<div class="mc-card-name">' + esc(name || itemId) + '</div>' +
+        (propsHtml ? '<div class="mc-card-props">' + propsHtml + '</div>' : '') +
+      '</div>' +
+    '</' + tag + '>';
   }
 
   MC.visual = {
     equipmentTile: equipmentTile,
     equipmentColorFor: equipmentColorFor,
     blockTile: blockTile,
-    EQUIPMENT_ICONS: EQUIPMENT_ICONS,
-    normaliseId: normaliseId,
-    resolve: resolve,
-    render: render
+    itemCard: itemCard,
+    EQUIPMENT_ICONS: EQUIPMENT_ICONS
   };
 })(window);
