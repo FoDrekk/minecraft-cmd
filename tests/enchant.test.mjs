@@ -250,6 +250,113 @@ check('a target that is entirely unsafe characters also blocks', await cmd(), ''
 await page.fill('#eh-target', '@p');
 await page.waitForTimeout(80);
 
+// ── VERSION-AWARE ENCHANTMENT COMMAND SYNTAX ────────────────
+// Regression for the exact command reported as rejected by Minecraft:
+// /give @p diamond_sword[enchantments={sharpness:5,looting:3,unbreaking:3,
+//   sweeping_edge:3,mending:1,fire_aspect:2}]
+// This is the correct, current syntax for 1.21.5+ (the "flat" enchantments
+// component — the levels:{} wrapper was dropped in 1.21.5, alongside
+// show_in_tooltip -> tooltip_display, both reflected in MC_SYNTAX). Locks
+// in the exact syntax generated for every supported era so a future change
+// can't silently reintroduce a mismatch between the selected version and
+// the emitted grammar.
+await pickItem('diamond sword');
+const enchSet = ['sharpness', 'looting', 'unbreaking', 'sweeping_edge', 'mending', 'fire_aspect'];
+for (const id of enchSet) if (!(await isChecked(id))) await toggle(id);
+await page.fill('#eh-target', '@p');
+await page.waitForTimeout(80);
+
+const FLAT = 'enchantments={sharpness:5,looting:3,unbreaking:3,sweeping_edge:3,mending:1,fire_aspect:2}';
+const LEVELS = 'enchantments={levels:{sharpness:5,looting:3,unbreaking:3,sweeping_edge:3,mending:1,fire_aspect:2}}';
+
+for (const v of ['26.2', '26.1', '1.21.11', '1.21.9', '1.21.5']) {
+  await setVersion(v);
+  has(`${v}: uses the flat enchantments component (levels wrapper dropped in 1.21.5)`, await cmd(), FLAT);
+  hasNot(`${v}: never emits the pre-1.21.5 levels wrapper`, await cmd(), 'levels:{');
+  check(`${v}: no bracket/brace mismatch`, (await cmd()).split('[').length, (await cmd()).split(']').length);
+}
+for (const v of ['1.21.4', '1.21.1', '1.20.6']) {
+  await setVersion(v);
+  has(`${v}: uses the levels-wrapped enchantments component (pre-1.21.5)`, await cmd(), LEVELS);
+  check(`${v}: no bracket/brace mismatch`, (await cmd()).split('[').length, (await cmd()).split(']').length);
+}
+for (const v of ['1.20.4', '1.20.1', '1.19.4']) {
+  await setVersion(v);
+  has(`${v}: uses legacy NBT Enchantments list, not item components`, await cmd(),
+    'Enchantments:[{id:"minecraft:sharpness",lvl:5s}');
+  hasNot(`${v}: never emits bracket component syntax the client can't parse`, await cmd(), 'diamond_sword[');
+}
+await setVersion('26.2');
+
+// ── REAL-WORLD REGRESSION: Minecraft Java 1.20.1 ────────────────
+// The exact scenario a real 1.20.1 client rejected: the app defaulted
+// to the newest version (26.2, component syntax) with no explicit
+// version selected, generating bracket syntax a pre-1.20.5 client has
+// never heard of ("Expected whitespace to end one argument, but found
+// trailing data"). 1.20.1 predates item components entirely (added in
+// 1.20.5) and previously wasn't even a selectable version — the fix is
+// adding it to MC_VERSIONS at its correct legacy_nbt-era rank, driven
+// through the real #mc-version-select dropdown here, not MC.setVersion(),
+// to prove the actual UI path works end-to-end.
+check('1.20.1 is a selectable version', await page.locator('#mc-version-select option[value="1.20.1"]').count(), 1);
+await page.selectOption('#mc-version-select', '1.20.1');
+await page.waitForTimeout(80);
+await pickItem('diamond sword');
+for (const id of enchSet) if (!(await isChecked(id))) await toggle(id);
+await page.fill('#eh-target', '@p');
+await page.waitForTimeout(80);
+
+const EXPECTED_1201 = '/give @p diamond_sword{Enchantments:[{id:"minecraft:sharpness",lvl:5s},{id:"minecraft:looting",lvl:3s},'
+  + '{id:"minecraft:unbreaking",lvl:3s},{id:"minecraft:sweeping_edge",lvl:3s},{id:"minecraft:mending",lvl:1s},{id:"minecraft:fire_aspect",lvl:2s}]}';
+check('1.20.1: the reported scenario now generates the exact valid legacy command', await cmd(), EXPECTED_1201);
+hasNot('1.20.1: never contains the post-1.20.5 item-component brackets', await cmd(), '[enchantments=');
+hasNot('1.20.1: never contains the flat/levels component form at all', await cmd(), 'enchantments={');
+has('1.20.1: the compatibility note reflects the selected version', await page.textContent('#eh-version-note'), '1.20.1');
+
+// Persists across a real reload (cookie), not just in-memory JS state
+await page.reload({ waitUntil: 'domcontentloaded' });
+await page.waitForFunction(() => window.MC && document.getElementById('eh-item-grid').children.length > 0);
+check('1.20.1: the selection persists across a reload', await page.locator('#mc-version-select').inputValue(), '1.20.1');
+
+for (const item of ['netherite sword', 'diamond pickaxe', 'bow']) {
+  await pickItem(item);
+  if (!(await isChecked('unbreaking'))) await toggle('unbreaking');
+  const c = await cmd();
+  has(`1.20.1 ${item}: legacy NBT syntax`, c, '{Enchantments:[{id:"minecraft:');
+  hasNot(`1.20.1 ${item}: no component brackets`, c, item.replace(' ', '_') + '[');
+}
+for (const target of ['@p', '@s', 'Notch']) {
+  await pickItem('diamond sword');
+  if (!(await isChecked('sharpness'))) await toggle('sharpness');
+  await page.fill('#eh-target', target);
+  await page.waitForTimeout(80);
+  has(`1.20.1 target ${target}: legacy command uses it`, await cmd(), `/give ${target} diamond_sword{`);
+}
+
+// Newer versions are completely unaffected by adding 1.20.1
+await setVersion('26.2');
+await pickItem('diamond sword');
+if (!(await isChecked('sharpness'))) await toggle('sharpness');
+has('26.2: still generates modern component syntax', await cmd(), 'diamond_sword[enchantments={sharpness:5}]');
+
+// The same generator, generically, for every tested item/target combo —
+// not a diamond-sword-only fix. unbreaking is compatible with all four.
+for (const item of ['netherite sword', 'diamond pickaxe', 'bow', 'mace']) {
+  await pickItem(item);
+  if (!(await isChecked('unbreaking'))) await toggle('unbreaking');
+  const c = await cmd();
+  has(`${item}: generates a command`, c.startsWith('/give'), true);
+  check(`${item}: no bracket/brace mismatch`, c.split('[').length, c.split(']').length);
+  check(`${item}: no brace mismatch`, c.split('{').length, c.split('}').length);
+}
+for (const target of ['@p', '@s', 'Notch']) {
+  await pickItem('diamond sword');
+  await toggle('sharpness');
+  await page.fill('#eh-target', target);
+  await page.waitForTimeout(80);
+  has(`target ${target}: command uses it`, await cmd(), `/give ${target} `);
+}
+
 // ── SAVE (Library) round-trips through the existing api.php ──
 await pickItem('netherite sword');
 await page.click('#out-ench [data-act="fav"]');
