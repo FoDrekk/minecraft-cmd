@@ -4,15 +4,18 @@
 // and the shared validation component (MC.ui.validation) used by the
 // Enchantment Hub.
 //
-// Rewritten 2026-09: the app no longer draws procedural CSS pixel-art
-// standing in for real Minecraft textures (assets/textures.js and its
-// MC.tex API are gone). The repository ships no Minecraft textures —
-// Mojang's art is not ours to redistribute — so the drop-in path is
-// proved here by writing a fixture PNG into assets/textures/{item,
-// block}/ during the run and removing it again, exercising the real
-// resolver rather than a mock.
+// The app no longer draws procedural CSS pixel-art standing in for real
+// Minecraft textures (assets/textures.js and its MC.tex API are gone).
+// The repository now ships ~580 authentic, legitimately-supplied item
+// textures under assets/textures/item/ — this file checks both that
+// path (real, permanent files resolving for real ids) and the generic
+// drop-in mechanism itself (a fixture PNG written mid-run for an id the
+// repo doesn't ship, proving the resolver isn't hardcoded to the
+// specific ids currently on disk). assets/textures/block/ intentionally
+// ships nothing yet — the supplied archive was items only — so block
+// ids still fall back to the catalogued palette colour.
 import { launchChromium } from './_launch.mjs';
-import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'node:fs';
+import { writeFileSync, unlinkSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
@@ -55,35 +58,68 @@ await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
 page.on('pageerror', e => { fail++; failures.push('PAGE ERROR: ' + e.message); });
 
 try {
-  // ── WITH NO ASSETS: the honest fallback chain ──────────────────
+  // ── SUPPLIED TEXTURES: the real, permanent asset set ────────────
+  // "mace" is a genuine gap in the supplied archive (it predates the
+  // Mace's 1.21 addition) — a real, honest example of "no texture yet"
+  // rather than a contrived unknown id, and exactly what the fallback
+  // chain below must handle cleanly.
   removeFixtures();
   await page.goto(`${BASE}/index.php`, { waitUntil: 'domcontentloaded' });
   await page.waitForFunction(() => window.MC && MC.visual);
 
+  const supplied = await page.evaluate(() => ({
+    itemCount: Object.keys(MC.data.textures.item).length,
+    blockCount: Object.keys(MC.data.textures.block).length,
+    diamondSword: MC.textureSrc('diamond_sword', 'item'),
+    netheriteSword: MC.textureSrc('netherite_sword', 'item'),
+    diamondPickaxe: MC.textureSrc('diamond_pickaxe', 'item'),
+    bow: MC.textureSrc('bow', 'item'),
+    apple: MC.textureSrc('apple', 'item'),
+    equipSword: MC.visual.equipmentTile('Sword', 'diamond_sword', 'lg'),
+    equipBow: MC.visual.equipmentTile('Bow', 'bow', 'lg'),
+    cardApple: MC.visual.itemCard('apple', 'Apple', null),
+  }));
+  check('the repository ships the supplied item textures (~580)', supplied.itemCount >= 500, true);
+  check('no block textures were supplied (item-only archive)', supplied.blockCount, 0);
+  check('Diamond Sword resolves to its real supplied texture', supplied.diamondSword, 'assets/textures/item/diamond_sword.png');
+  check('Netherite Sword resolves to its real supplied texture', supplied.netheriteSword, 'assets/textures/item/netherite_sword.png');
+  check('Diamond Pickaxe resolves to its real supplied texture', supplied.diamondPickaxe, 'assets/textures/item/diamond_pickaxe.png');
+  check('Bow resolves to its real supplied texture', supplied.bow, 'assets/textures/item/bow.png');
+  check('Apple resolves to its real supplied texture', supplied.apple, 'assets/textures/item/apple.png');
+  has('the equipment tile renders Diamond Sword as a real <img>', supplied.equipSword, '<img class="mc-tex-img" src="assets/textures/item/diamond_sword.png"');
+  has('...and the Bow too', supplied.equipBow, 'src="assets/textures/item/bow.png"');
+  has('the item card renders the real Apple texture', supplied.cardApple, 'assets/textures/item/apple.png');
+
+  // The files are genuinely served, not just referenced
+  const swordRes = await page.request.get(`${BASE}/assets/textures/item/diamond_sword.png`);
+  check('the diamond sword texture is actually served', swordRes.status(), 200);
+  has('...as an image', swordRes.headers()['content-type'], 'image');
+
+  // ── THE HONEST FALLBACK CHAIN (mace: a genuine supply gap) ──────
   const bare = await page.evaluate(() => ({
-    manifestEmpty: Object.keys(MC.data.textures.item).length === 0 && Object.keys(MC.data.textures.block).length === 0,
-    hasSword: MC.hasTexture('diamond_sword', 'item'),
-    srcNone: MC.textureSrc('diamond_sword', 'item'),
-    equip: MC.visual.equipmentTile('Sword', 'diamond_sword', 'lg'),
+    hasMace: MC.hasTexture('mace', 'item'),
+    srcNone: MC.textureSrc('mace', 'item'),
+    equip: MC.visual.equipmentTile('Mace', 'mace', 'lg'),
     block: MC.visual.blockTile('#7CBD6B', 'md', 'Grass Block', 'grass_block'),
-    card: MC.visual.itemCard('diamond_sword', 'Diamond Sword', { Damage: '7' }),
+    card: MC.visual.itemCard('mace', 'Mace', { Damage: '7' }),
     cardEscaped: MC.visual.itemCard('x', '<img src=x onerror=alert(1)>', null),
   }));
-  check('no textures shipped in the repository', bare.manifestEmpty, true);
-  check('a real id has no texture yet', bare.hasSword, false);
+  check('mace has no supplied texture (predates the archive)', bare.hasMace, false);
   check('the unresolved id has no src', bare.srcNone, null);
   check('with no texture, the equipment tile draws the SVG glyph, not an <img>', bare.equip.includes('<img'), false);
   has('...marked as the glyph tile, not a texture tile', bare.equip, 'mc-tile');
   check('a fallback never emits a broken <img>', bare.block.includes('<img'), false);
   has('a block with no texture falls back to its palette colour', bare.block, '#7CBD6B');
-  has('an item card shows its name', bare.card, 'Diamond Sword');
+  has('an item card shows its name', bare.card, 'Mace');
   has('an item card shows its passed properties', bare.card, 'Damage: 7');
   check('item card names are escaped, not injected', bare.cardEscaped.includes('<img src=x'), false);
 
-  // ── WITH ASSETS PRESENT: the drop-in path ──────────────────────
+  // ── THE GENERIC DROP-IN MECHANISM (an id the repo doesn't ship) ──
+  // Proves the resolver isn't hardcoded to the ~580 supplied ids —
+  // any legitimately-added file is picked up with zero code change.
   writeFixtures();
   await page.goto(`${BASE}/index.php`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.MC && Object.keys(MC.data.textures.item).length > 0);
+  await page.waitForFunction(() => window.MC && MC.hasTexture('zz_probe_item', 'item'));
 
   const dropped = await page.evaluate(() => ({
     hasProbe: MC.hasTexture('zz_probe_item', 'item'),
@@ -119,13 +155,22 @@ try {
   await page.waitForSelector('.mc-chip');
   check('every checklist row still shows a chip', await page.locator('.mc-chip').count() > 0, true);
 
-  // ── ITEM BUILDER: no third-party image URLs ────────────────────
+  // ── ITEM BUILDER: same resolver, no third-party image URLs ─────
   await page.goto(`${BASE}/nbt.php`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.item-sel-card');
   const nbtHtml = await page.content();
   check('the item picker never references a third-party image host', /https?:\/\/[^"']*\.(png|jpe?g|webp)/i.test(nbtHtml), false);
-  check('with no textures, item picker cards show an initial, not a broken image',
+
+  await page.fill('#nbt-item-search', 'diamond sword');
+  await page.waitForTimeout(150);
+  has('a supplied item (Diamond Sword) renders the real texture, not a placeholder',
+    await page.locator('.item-sel-card').first().innerHTML(), 'assets/textures/item/diamond_sword.png');
+
+  await page.fill('#nbt-item-search', 'mace');
+  await page.waitForTimeout(150);
+  check('an item with no supplied texture (Mace) shows an initial, not a broken image',
     await page.locator('.item-sel-card .item-sel-initial').count() > 0, true);
+  await page.fill('#nbt-item-search', '');
 
   // ── MC.ui.validation — shared by the Enchantment Hub target field ──
   const val = await page.evaluate(() => ({
@@ -139,14 +184,30 @@ try {
   has('...and can carry a title', val.err, 'Invalid target');
   check('validation text is escaped, not injected', val.escaped.includes('<img src=x'), false);
 
-  // ── LIVE PAGES actually use these without erroring ──────────────
+  // ── LIVE PAGES: same resolver, real supplied textures render ────
   await page.goto(`${BASE}/knowledge.php?t=items`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.item-card .mc-tile, .item-card .mc-block-tile', { timeout: 10000 });
   check('Knowledge Items renders visual tiles', await page.locator('.item-card .mc-tile, .item-card .mc-block-tile').count() > 0, true);
+  await page.fill('#item-search', 'diamond sword');
+  await page.waitForTimeout(150);
+  has('Knowledge renders the real Diamond Sword texture, not a placeholder',
+    await page.locator('.item-card').first().innerHTML(), 'assets/textures/item/diamond_sword.png');
+  await page.fill('#item-search', '');
 
   await page.goto(`${BASE}/enchantments.php`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.mc-tile', { timeout: 10000 });
   check('Enchantment Hub renders an equipment tile', await page.locator('.mc-tile').count() > 0, true);
+  await page.fill('#eh-search', 'diamond pickaxe');
+  await page.waitForTimeout(150);
+  has('Enchantment Hub renders the real Diamond Pickaxe texture, not a placeholder',
+    await page.locator('.eh-item-card').first().innerHTML(), 'assets/textures/item/diamond_pickaxe.png');
+
+  // Search never duplicates texture-path logic — it has no per-item
+  // Minecraft art of its own to resolve (its result icons are generic
+  // category glyphs from lib/registry.php, not item textures), so
+  // there is nothing here for the resolver to own.
+  const searchJs = readFileSync(join(ROOT, 'assets', 'search.js'), 'utf8');
+  check('search.js does not hardcode any texture path', /assets\/textures/.test(searchJs), false);
 
   // ── ACCESSIBILITY + MOBILE FOUNDATION ─────────────────────────
   // A real Tab keypress (not a scripted .focus()) is what actually

@@ -97,6 +97,10 @@ const MC_VERSIONS = [
         'label' => '1.20.4', 'name' => 'Trails & Tales', 'edition' => 'java',
         'syntax' => 'legacy_nbt', 'rank' => 40, 'released' => '2023-12-07',
     ],
+    '1.20.1' => [
+        'label' => '1.20.1', 'name' => 'Trails & Tales', 'edition' => 'java',
+        'syntax' => 'legacy_nbt', 'rank' => 35, 'released' => '2023-06-12',
+    ],
     '1.19.4' => [
         'label' => '1.19.4', 'name' => 'The Wild Update', 'edition' => 'java',
         'syntax' => 'legacy_nbt', 'rank' => 30, 'released' => '2023-03-14',
@@ -137,8 +141,8 @@ const MC_FEATURES = [
     'transfer_command'  => 55,  // 1.20.5+ /transfer
     // Signs gained double-sided text (front_text / back_text) in 1.20; the
     // 1.19.4 and earlier block entity format is flat Text1-Text4 + GlowingText.
-    // Rank 40 is 1.20.4, the oldest 1.20.x version in our table.
-    'sign_front_back'   => 40,  // 1.20+   front_text / back_text
+    // Rank 35 is 1.20.1, the oldest 1.20.x version in our table.
+    'sign_front_back'   => 35,  // 1.20+   front_text / back_text
     'locate_biome'      => 30,  // 1.19+   /locate biome
     'attribute_command' => 40,  // 1.20.3+ /attribute (kept conservative)
 
