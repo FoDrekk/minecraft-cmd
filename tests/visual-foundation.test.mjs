@@ -6,14 +6,18 @@
 //
 // The app no longer draws procedural CSS pixel-art standing in for real
 // Minecraft textures (assets/textures.js and its MC.tex API are gone).
-// The repository now ships ~580 authentic, legitimately-supplied item
-// textures under assets/textures/item/ — this file checks both that
-// path (real, permanent files resolving for real ids) and the generic
-// drop-in mechanism itself (a fixture PNG written mid-run for an id the
-// repo doesn't ship, proving the resolver isn't hardcoded to the
-// specific ids currently on disk). assets/textures/block/ intentionally
-// ships nothing yet — the supplied archive was items only — so block
-// ids still fall back to the catalogued palette colour.
+// The repository ships ~580 authentic, legitimately-supplied item
+// textures under assets/textures/item/, and (as of the Minecraft
+// 1.20.1 visual asset foundation work) ~142 authentic block textures
+// under assets/textures/block/ — a curated subset of the app's block
+// registry, not a raw dump of every face variant in the supplied
+// archive. A handful of registry ids (e.g. resin_bricks, a post-1.20.1
+// block) have no authentic 1.20.1 texture and must fall back honestly —
+// this file checks all three: real permanent files resolving for real
+// ids, the genuine no-texture fallback, and the generic drop-in
+// mechanism itself (a fixture PNG written mid-run for an id the repo
+// doesn't ship, proving the resolver isn't hardcoded to the specific
+// ids currently on disk).
 import { launchChromium } from './_launch.mjs';
 import { writeFileSync, unlinkSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -75,37 +79,60 @@ try {
     diamondPickaxe: MC.textureSrc('diamond_pickaxe', 'item'),
     bow: MC.textureSrc('bow', 'item'),
     apple: MC.textureSrc('apple', 'item'),
+    crossbow: MC.textureSrc('crossbow', 'item'),
+    stone: MC.textureSrc('stone', 'block'),
+    dirt: MC.textureSrc('dirt', 'block'),
+    cobblestone: MC.textureSrc('cobblestone', 'block'),
+    oakPlanks: MC.textureSrc('oak_planks', 'block'),
+    grassBlock: MC.textureSrc('grass_block', 'block'),
     equipSword: MC.visual.equipmentTile('Sword', 'diamond_sword', 'lg'),
     equipBow: MC.visual.equipmentTile('Bow', 'bow', 'lg'),
     cardApple: MC.visual.itemCard('apple', 'Apple', null),
+    tileStone: MC.visual.blockTile('#8b8b8b', 'md', 'Stone', 'stone'),
   }));
   check('the repository ships the supplied item textures (~580)', supplied.itemCount >= 500, true);
-  check('no block textures were supplied (item-only archive)', supplied.blockCount, 0);
+  check('the repository ships the curated block textures (~142)', supplied.blockCount >= 100 && supplied.blockCount < 977, true);
   check('Diamond Sword resolves to its real supplied texture', supplied.diamondSword, 'assets/textures/item/diamond_sword.png');
   check('Netherite Sword resolves to its real supplied texture', supplied.netheriteSword, 'assets/textures/item/netherite_sword.png');
   check('Diamond Pickaxe resolves to its real supplied texture', supplied.diamondPickaxe, 'assets/textures/item/diamond_pickaxe.png');
   check('Bow resolves to its real supplied texture', supplied.bow, 'assets/textures/item/bow.png');
   check('Apple resolves to its real supplied texture', supplied.apple, 'assets/textures/item/apple.png');
+  check('Crossbow resolves via its at-rest inventory texture', supplied.crossbow, 'assets/textures/item/crossbow.png');
+  check('Stone resolves to its real supplied block texture', supplied.stone, 'assets/textures/block/stone.png');
+  check('Dirt resolves to its real supplied block texture', supplied.dirt, 'assets/textures/block/dirt.png');
+  check('Cobblestone resolves to its real supplied block texture', supplied.cobblestone, 'assets/textures/block/cobblestone.png');
+  check('Oak Planks resolves to its real supplied block texture', supplied.oakPlanks, 'assets/textures/block/oak_planks.png');
+  check('Grass Block resolves via its top-face texture (block ids can need a face alias)', supplied.grassBlock, 'assets/textures/block/grass_block.png');
   has('the equipment tile renders Diamond Sword as a real <img>', supplied.equipSword, '<img class="mc-tex-img" src="assets/textures/item/diamond_sword.png"');
   has('...and the Bow too', supplied.equipBow, 'src="assets/textures/item/bow.png"');
   has('the item card renders the real Apple texture', supplied.cardApple, 'assets/textures/item/apple.png');
+  has('the block tile renders the real Stone texture', supplied.tileStone, 'src="assets/textures/block/stone.png"');
 
   // The files are genuinely served, not just referenced
   const swordRes = await page.request.get(`${BASE}/assets/textures/item/diamond_sword.png`);
   check('the diamond sword texture is actually served', swordRes.status(), 200);
   has('...as an image', swordRes.headers()['content-type'], 'image');
 
-  // ── THE HONEST FALLBACK CHAIN (mace: a genuine supply gap) ──────
+  // ── THE HONEST FALLBACK CHAIN ────────────────────────────────────
+  // mace: predates the 1.21 update, genuinely absent from a 1.20.1 set.
+  // shield: real Minecraft renders it as a 3D banner-overlay model, not
+  // a flat inventory icon, so no simple square texture exists for it.
+  // resin_bricks: a post-1.20.1 (Creaking-era) block — a block-side
+  // example of the same "correctly absent from this version" case.
   const bare = await page.evaluate(() => ({
     hasMace: MC.hasTexture('mace', 'item'),
     srcNone: MC.textureSrc('mace', 'item'),
+    hasShield: MC.hasTexture('shield', 'item'),
+    hasResinBricks: MC.hasTexture('resin_bricks', 'block'),
     equip: MC.visual.equipmentTile('Mace', 'mace', 'lg'),
-    block: MC.visual.blockTile('#7CBD6B', 'md', 'Grass Block', 'grass_block'),
+    block: MC.visual.blockTile('#7CBD6B', 'md', 'Resin Bricks', 'resin_bricks'),
     card: MC.visual.itemCard('mace', 'Mace', { Damage: '7' }),
     cardEscaped: MC.visual.itemCard('x', '<img src=x onerror=alert(1)>', null),
   }));
   check('mace has no supplied texture (predates the archive)', bare.hasMace, false);
   check('the unresolved id has no src', bare.srcNone, null);
+  check('shield has no supplied texture (real inventory art is a 3D banner-overlay model, not a flat icon)', bare.hasShield, false);
+  check('resin_bricks has no supplied texture (postdates Minecraft 1.20.1)', bare.hasResinBricks, false);
   check('with no texture, the equipment tile draws the SVG glyph, not an <img>', bare.equip.includes('<img'), false);
   has('...marked as the glyph tile, not a texture tile', bare.equip, 'mc-tile');
   check('a fallback never emits a broken <img>', bare.block.includes('<img'), false);
@@ -147,11 +174,17 @@ try {
   check('the server-rendered material chip uses the dropped-in texture',
     await page.locator('.mc-chip-img img[src*="sand.png"]').count() > 0, true);
 
-  // Removing the asset must fall straight back, with nothing left broken
+  // Removing the asset must fall straight back, with nothing left broken.
+  // Scoped to the material chip itself (item kind) rather than the whole
+  // page: sand also has a genuine, permanent *block*-kind texture now
+  // (assets/textures/block/sand.png, part of the curated 1.20.1 block
+  // set), which legitimately still renders in this farm's blueprint
+  // viewer — that is correct behaviour, not a dangling reference to the
+  // removed item-kind fixture.
   removeFixtures();
   await page.goto(`${BASE}/farms.php?farm=sugar-cane`, { waitUntil: 'domcontentloaded' });
-  check('removing the asset falls back cleanly (no dangling <img> to it)',
-    (await page.content()).includes('sand.png'), false);
+  check('removing the item asset falls back cleanly on the material chip (no dangling <img> to it)',
+    await page.locator('.mc-chip-img img[src*="textures/item/sand.png"]').count() > 0, false);
   await page.waitForSelector('.mc-chip');
   check('every checklist row still shows a chip', await page.locator('.mc-chip').count() > 0, true);
 
@@ -185,6 +218,29 @@ try {
   check('validation text is escaped, not injected', val.escaped.includes('<img src=x'), false);
 
   // ── LIVE PAGES: same resolver, real supplied textures render ────
+  await page.goto(`${BASE}/knowledge.php?t=materials`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.mat-card', { timeout: 10000 });
+  check('Knowledge Materials renders real block textures, not flat colour swatches',
+    await page.locator('.mat-card .mc-block-tile.mc-tile-img img').count() > 0, true);
+  await page.fill('#mat-search', 'stone');
+  await page.waitForTimeout(150);
+  has('Knowledge Materials renders the real Stone texture',
+    await page.locator('.mat-card').first().innerHTML(), 'assets/textures/block/stone.png');
+  await page.fill('#mat-search', '');
+
+  await page.goto(`${BASE}/build.php?t=planner`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#pl-palette .mc-block-tile', { timeout: 10000 });
+  check('Build planner palette renders real block tiles (same resolver as Materials)',
+    await page.locator('#pl-palette .mc-block-tile').count() > 0, true);
+
+  await page.goto(`${BASE}/farms.php?farm=sugar-cane`, { waitUntil: 'domcontentloaded' });
+  const bpCell = await page.locator('.bp-cell:not(.bp-cell-air)').first();
+  if (await bpCell.count()) {
+    const cellStyle = await bpCell.getAttribute('style');
+    has('Blueprint cells paint through the shared block resolver where a texture exists',
+      cellStyle, 'background');
+  }
+
   await page.goto(`${BASE}/knowledge.php?t=items`, { waitUntil: 'domcontentloaded' });
   await page.waitForSelector('.item-card .mc-tile, .item-card .mc-block-tile', { timeout: 10000 });
   check('Knowledge Items renders visual tiles', await page.locator('.item-card .mc-tile, .item-card .mc-block-tile').count() > 0, true);
