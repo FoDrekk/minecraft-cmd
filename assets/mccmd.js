@@ -76,6 +76,13 @@
      Returns { ok, level:'ok'|'warn'|'error', says } — `says` is plain
      language ("the nearest player"), ready to show under the field. */
   var PLAYER_NAME = /^[A-Za-z0-9_]{3,16}$/;
+  // Minecraft's command parser (Brigadier) only accepts these characters
+  // in an unquoted argument — anything else ends that argument early, so
+  // a target string carrying one (e.g. a stray "<") breaks the generated
+  // command with "trailing data" instead of a warning the player can act
+  // on. This app never wraps a raw target in quotes, so the check runs
+  // against the unquoted rule regardless of whether the name has spaces.
+  var UNQUOTED_SAFE = /^[A-Za-z0-9_.+\s-]*$/;
 
   MC.validateTarget = function (raw) {
     var t = String(raw == null ? '' : raw).trim();
@@ -102,8 +109,14 @@
 
     // A plain player name. Java names are 3-16 of [A-Za-z0-9_]; anything
     // else still runs if it is a real name (older or Bedrock gamertags),
-    // so this warns rather than blocks.
+    // so this warns rather than blocks — except a character Minecraft's
+    // parser cannot read unquoted there, which always breaks the command.
     if (PLAYER_NAME.test(t)) return { ok: true, level: 'ok', says: 'the player ' + t };
+    if (!UNQUOTED_SAFE.test(t)) {
+      var bad = t.replace(/[A-Za-z0-9_.+\s-]/g, '').charAt(0);
+      return { ok: false, level: 'error',
+               says: '“' + t + '” has a character (' + bad + ') Minecraft can\'t read there. Use only letters, numbers, underscores, or a selector like @p.' };
+    }
     if (/\s/.test(t)) {
       return { ok: true, level: 'warn',
                says: 'Names with spaces need quotes in a command, and only Bedrock gamertags have them.' };
