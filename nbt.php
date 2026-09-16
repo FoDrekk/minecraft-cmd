@@ -32,7 +32,8 @@ $defaultTarget = 'nizkbiits';
 .item-sel-card{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 3px;border-radius:7px;border:1px solid var(--border);background:var(--bg3);cursor:pointer;transition:all .15s;text-align:center}
 .item-sel-card:hover{border-color:var(--green2)}
 .item-sel-card.selected{border-color:var(--green);background:rgba(74,222,128,0.1)}
-.item-sel-card img{width:28px;height:28px;image-rendering:pixelated}
+.item-sel-card img{width:28px;height:28px;image-rendering:pixelated;image-rendering:crisp-edges}
+.item-sel-initial{width:28px;height:28px;border-radius:5px;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--text2)}
 .item-sel-card span{font-size:9px;color:var(--text2);line-height:1.2;word-break:break-word}
 .tag-section{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:10px}
 .tag-section-title{font-size:10px;font-family:var(--mono);color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:8px}
@@ -263,7 +264,13 @@ function renderNbtItems(search=''){
   list.forEach(([id,name])=>{
     const d=document.createElement('div');
     d.className='item-sel-card'+(id===selectedItem?' selected':'');
-    d.innerHTML=`<img src="https://static.minecraftitemids.com/64/${id}.png" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2228%22 height=%2228%22><rect width=%2228%22 height=%2228%22 fill=%22%23252535%22 rx=%224%22/><text x=%2214%22 y=%2220%22 font-size=%2216%22 text-anchor=%22middle%22>📦</text></svg>'" alt="${name}"><span>${name}</span>`;
+    // A real Minecraft texture when one is on disk (lib/textures.php);
+    // otherwise a plain initial — never a third-party image URL.
+    const src = MC.textureSrc(id, 'item');
+    const visual = src
+      ? `<img class="item-sel-img" src="${MC.escapeHtml(src)}" alt="" loading="lazy">`
+      : `<span class="item-sel-initial">${MC.escapeHtml((name || id).charAt(0).toUpperCase())}</span>`;
+    d.innerHTML=`${visual}<span>${MC.escapeHtml(name)}</span>`;
     d.onclick=()=>{
       selectedItem=id;
       document.getElementById('nbt-selected-id').textContent=id;

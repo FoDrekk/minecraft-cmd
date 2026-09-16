@@ -14,10 +14,10 @@
     versions: D.versions,
     features: D.features,
     selectors: D.selectors || {},
-    // Shared Minecraft data the visual layer resolves against — see
-    // assets/mcvisual.js. Empty objects keep it safe on a page that
-    // loads the runtime without the visual data.
-    data: { textures: D.textures || {}, blockHex: D.blockHex || {} },
+    // Which ids have a real Minecraft texture on disk right now — see
+    // lib/textures.php. Empty objects keep this safe on a page that
+    // loads the runtime without the export.
+    data: { textures: D.textures || { item: {}, block: {} } },
     _cur: D.current
   };
 
@@ -344,6 +344,26 @@
     });
   }
   MC.escapeHtml = escapeHtml;
+
+  /* ── TEXTURE RESOLVER ────────────────────────────
+     The single place the client asks "is there a real Minecraft
+     texture for this id?" — mirrors lib/textures.php. Every visual
+     surface (assets/mcvisual.js) goes through this rather than
+     building an image path itself, so there is exactly one answer
+     to "does this id have art" for the whole app. */
+  function textureNormaliseId(id) {
+    return String(id == null ? '' : id).trim().toLowerCase()
+      .replace(/^minecraft:/, '').replace(/[^a-z0-9_]+/g, '_').replace(/^_+|_+$/g, '');
+  }
+
+  /** The real texture's web path for this id, or null if none exists.
+      kind is 'item' or 'block' — the game keeps those two separate. */
+  MC.textureSrc = function (id, kind) {
+    var map = (MC.data.textures[kind === 'block' ? 'block' : 'item']) || {};
+    return map[textureNormaliseId(id)] || null;
+  };
+
+  MC.hasTexture = function (id, kind) { return MC.textureSrc(id, kind) !== null; };
 
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-act]');

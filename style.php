@@ -610,10 +610,11 @@ kbd {
 .mc-tile-md { width:40px; height:40px } .mc-tile-md svg { width:22px; height:22px }
 .mc-tile-sm { width:28px; height:28px } .mc-tile-sm svg { width:16px; height:16px }
 
-/* Texture tiles from textures.js */
-.mc-tex { image-rendering: pixelated; image-rendering: crisp-edges }
-.mc-tile-tex { background:transparent !important; box-shadow:none !important; overflow:hidden; display:flex; align-items:center; justify-content:center }
-.mc-tex-missing { image-rendering:pixelated }
+/* Real Minecraft textures, dropped into assets/textures/ — see
+   lib/textures.php. image-rendering keeps the source pixel art crisp
+   (not smoothed/blurred) when scaled up to tile size. */
+.mc-tile-img { background:transparent !important; box-shadow:none !important; overflow:hidden; display:flex; align-items:center; justify-content:center }
+.mc-tex-img { width:80%; height:80%; object-fit:contain; image-rendering:pixelated; image-rendering:crisp-edges }
 
 /* ═══════════════════════════════
    ITEM CARD — MC.visual.itemCard()
@@ -752,6 +753,8 @@ kbd {
 .mc-chip { width:24px; height:24px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
   box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12); font-size:13px; line-height:1 }
 .mc-chip-glyph { background:var(--bg3) }
+.mc-chip-img { background:var(--bg3); overflow:hidden }
+.mc-chip-img img { width:80%; height:80%; object-fit:contain; image-rendering:pixelated; image-rendering:crisp-edges }
 
 /* ═══════════════════════════════
    EMPTY STATE
@@ -839,7 +842,6 @@ function copyText(txt){
 
 <?php ui_runtime_data(); ?>
 <script src="assets/mccmd.js"></script>
-<script src="assets/textures.js"></script>
 <script src="assets/mcvisual.js"></script>
 <script src="assets/blueprint.js"></script>
 <script src="assets/search.js"></script>

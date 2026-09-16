@@ -1,9 +1,13 @@
 /* ================================================
    mcvisual.js — centralized Minecraft visual renderer
    ------------------------------------------------
-   Every page that needs to show an item or block uses
-   THIS renderer. Now integrates with textures.js for
-   CSS pixel-art textures with SVG glyph fallback.
+   Every page that needs to show an item or block uses THIS
+   renderer, and it in turn is the only place that decides how
+   to draw one. It always tries a real texture first (via
+   MC.textureSrc() — see mccmd.js / lib/textures.php); when none
+   is on disk it falls back to a plainly-generic placeholder
+   (a flat colour, an abstract category glyph, or an initial) —
+   never a hand-drawn or AI-generated stand-in for the real art.
    ================================================ */
 (function (global) {
   'use strict';
@@ -12,8 +16,15 @@
 
   function esc(s) { return MC.escapeHtml(s); }
 
+  function img(src, alt, cls) {
+    return '<img class="' + cls + '" src="' + esc(src) + '" alt="' + esc(alt || '') + '" loading="lazy">';
+  }
+
   /* ── EQUIPMENT (enchantable items) ──────────────
-     One glyph per equipment category, coloured by material tier. */
+     Fallback only: one abstract glyph per equipment category,
+     tinted by material tier. Not a texture reproduction — a
+     generic "this is a sword" icon, the same idea as any app's
+     placeholder icon for a missing image. */
   var MATERIAL_COLORS = {
     wooden: '#a9825c', stone: '#8a8a8a', golden: '#f2ce4b', iron: '#d8d8dc',
     diamond: '#66e8dc', netherite: '#4a4149', leather: '#8b5a2b', chainmail: '#98a2ac'
@@ -50,33 +61,28 @@
 
   /**
    * A tile representing an equipment item (weapon/tool/armour).
-   * Tries CSS pixel-art texture first, falls back to SVG glyph.
+   * A real texture if one is on disk, otherwise the category glyph.
    */
   function equipmentTile(category, itemId, size) {
-    // Try pixel-art texture first
-    if (MC.tex && MC.tex.has(itemId)) {
-      var texSize = size === 'sm' ? 'sm' : (size === 'md' ? 'md' : 'lg');
-      return '<div class="mc-tile mc-tile-' + (size || 'lg') + ' mc-tile-tex">' +
-        MC.tex.render(itemId, texSize) + '</div>';
+    var src = MC.textureSrc(itemId, 'item');
+    if (src) {
+      return '<div class="mc-tile mc-tile-' + (size || 'lg') + ' mc-tile-img">' +
+        img(src, category, 'mc-tex-img') + '</div>';
     }
-    // Fallback to SVG glyph
     var bg = equipmentColorFor(itemId);
     var glyph = EQUIPMENT_ICONS[category] || EQUIPMENT_ICONS.Sword;
     return '<div class="mc-tile mc-tile-' + (size || 'lg') + '" style="background:' + bg + '">' +
       '<svg viewBox="0 0 24 24" fill="rgba(255,255,255,.92)" stroke="rgba(255,255,255,.92)">' + glyph + '</svg></div>';
   }
 
-  /* ── BLOCKS (Material Library) ───────────────────
-     Blocks carry a real approximate colour — try texture first. */
-  function blockTile(hex, size, title) {
-    // Try pixel-art texture if title (block name) maps to a texture
-    if (title && MC.tex) {
-      var blockId = title.toLowerCase().replace(/\s+/g, '_');
-      if (MC.tex.has(blockId)) {
-        var texSize = size === 'sm' ? 'sm' : (size === 'md' ? 'md' : 'lg');
-        return '<div class="mc-block-tile mc-tile-' + (size || 'md') + ' mc-tile-tex" title="' + esc(title || '') + '">' +
-          MC.tex.render(blockId, texSize) + '</div>';
-      }
+  /* ── BLOCKS (Material Library, Farms) ─────────────
+     A real texture if one is on disk, otherwise the block's
+     catalogued palette colour — never a drawn substitute. */
+  function blockTile(hex, size, title, blockId) {
+    var src = blockId ? MC.textureSrc(blockId, 'block') : null;
+    if (src) {
+      return '<div class="mc-block-tile mc-tile-' + (size || 'md') + ' mc-tile-img"' +
+        (title ? ' title="' + esc(title) + '"' : '') + '>' + img(src, title, 'mc-tex-img') + '</div>';
     }
     return '<div class="mc-block-tile mc-tile-' + (size || 'md') + '" style="background:' + esc(hex || '#3a3a3a') + '"' +
       (title ? ' title="' + esc(title) + '"' : '') + '></div>';
@@ -84,7 +90,6 @@
 
   /**
    * Full item card with texture, name, and optional properties.
-   * Used in Knowledge, Kit Builder, and Item Builder.
    */
   function itemCard(itemId, name, props, options) {
     options = options || {};
@@ -93,15 +98,17 @@
     var href = options.href || '';
     var tag = href ? 'a' : 'div';
     var hrefAttr = href ? ' href="' + esc(href) + '"' : '';
-    
-    var texHtml = '';
-    if (MC.tex && MC.tex.has(itemId)) {
-      texHtml = MC.tex.render(itemId, size);
+
+    var visHtml;
+    var src = MC.textureSrc(itemId, options.kind === 'block' ? 'block' : 'item');
+    if (src) {
+      visHtml = '<div class="mc-tile mc-tile-' + size + ' mc-tile-img">' + img(src, name || itemId, 'mc-tex-img') + '</div>';
     } else {
-      // Fallback: colored square with first letter
+      // No real texture on disk: a plain initial, like any app's
+      // placeholder avatar for a missing image — not a stand-in texture.
       var color = equipmentColorFor(itemId);
       var initial = (name || itemId).charAt(0).toUpperCase();
-      texHtml = '<div class="mc-tile mc-tile-' + size + '" style="background:' + color + '">' +
+      visHtml = '<div class="mc-tile mc-tile-' + size + '" style="background:' + color + '">' +
         '<span style="color:rgba(255,255,255,.85);font-weight:700;font-size:14px">' + esc(initial) + '</span></div>';
     }
 
@@ -115,7 +122,7 @@
     }
 
     return '<' + tag + ' class="mc-item-card" style="--card-accent:var(--' + esc(accent) + ')"' + hrefAttr + '>' +
-      '<div class="mc-card-visual">' + texHtml + '</div>' +
+      '<div class="mc-card-visual">' + visHtml + '</div>' +
       '<div class="mc-card-info">' +
         '<div class="mc-card-name">' + esc(name || itemId) + '</div>' +
         (propsHtml ? '<div class="mc-card-props">' + propsHtml + '</div>' : '') +
