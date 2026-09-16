@@ -391,8 +391,8 @@ function itemFood(string $id): ?array
  * The texture key for an item — the asset/renderer lookup key. Kept a
  * separate concept from the id so the resolver can be pointed at real
  * local assets later without touching item data. It is NOT a promise
- * that a texture exists; assets/textures.js decides that and falls back
- * visibly when it does not.
+ * that a texture exists; lib/textures.php's textureResolve() decides
+ * that and the caller falls back visibly when it does not.
  */
 function itemTextureKey(string $id): string
 {

@@ -8,6 +8,7 @@
 // ================================================
 require_once __DIR__ . '/mc.php';
 require_once __DIR__ . '/data/blocks.php';
+require_once __DIR__ . '/textures.php';
 
 function e(?string $s): string
 {
@@ -95,19 +96,22 @@ function ui_cmdout(string $id, string $tab = 'cmd', array $actions = ['copy', 'c
 }
 
 /**
- * A small visual tile for one material: the catalogued block's palette
- * colour when it is a real block id, otherwise a plain emoji glyph the
- * caller supplies. Restored 2026-09 — farms.php's structured materials
- * list (materials_v) still calls this; it was removed from lib/ui.php
- * by the Wiki data-alignment merge without a replacement, which left
- * every farm with materials_v (Sugar Cane, Creeper) fatal-erroring.
- * Kept deliberately simple (hex/glyph only, no texture lookup) to match
- * the app's current visual approach rather than reintroducing the
- * separate drop-in texture pipeline this repo no longer wires up.
+ * A small visual tile for one material: a real Minecraft texture when
+ * one is on disk (see lib/textures.php), else the catalogued block's
+ * palette colour, else a plain emoji glyph the caller supplies. Never
+ * a drawn stand-in for the real art — only an authentic texture or an
+ * honest flat fallback.
  */
 function ui_material_chip(?string $blockId = null, ?string $glyph = null): string
 {
     if ($blockId !== null) {
+        $src = textureResolve($blockId, 'item');
+        if ($src) {
+            $row = blocksAll()[$blockId] ?? null;
+            $label = $row ? $row[0] : $blockId;
+            return '<span class="mc-chip mc-chip-img" title="' . e($label) . '" aria-hidden="true">'
+                . '<img src="' . e($src) . '" alt="" loading="lazy"></span>';
+        }
         $row = blocksAll()[$blockId] ?? null;
         if ($row) {
             return '<span class="mc-chip" style="background:' . e($row[2]) . '" title="' . e($row[0]) . '" aria-hidden="true"></span>';
@@ -218,6 +222,11 @@ function ui_runtime_data(): void
         // Enhance Item flow generates no command at all.
         'selectors' => MC_SELECTORS,
         'current'   => mcCurrentVersion(),
+        // Which ids have a real, legitimately-supplied Minecraft texture
+        // on disk right now — see lib/textures.php. The client never
+        // guesses at this; it only renders an <img> for an id present
+        // here, and falls back to an honest placeholder otherwise.
+        'textures'  => texturesManifestAll(),
     ];
     echo '<script>window.MC_DATA=' . json_encode($data, JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
 }
