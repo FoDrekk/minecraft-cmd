@@ -198,3 +198,39 @@ function ui_runtime_data(): void
     ];
     echo '<script>window.MC_DATA=' . json_encode($data, JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
 }
+
+/**
+ * Step indicator for wizard-style flows.
+ * $steps = ['Target', 'Item', 'Enchant', 'Preview']
+ * $active = 1-indexed active step
+ */
+function ui_step_indicator(array $steps, int $active = 1, string $id = ''): void
+{
+    echo '<div class="step-indicator"' . ($id ? ' id="' . e($id) . '"' : '') . '>';
+    foreach ($steps as $i => $label) {
+        $n = $i + 1;
+        $cls = $n === $active ? 'active' : ($n < $active ? 'done' : '');
+        echo '<div class="step-item ' . $cls . '" data-step="' . $n . '">'
+            . '<span class="step-num">' . ($n < $active ? '✓' : $n) . '</span>'
+            . e($label) . '</div>';
+    }
+    echo '</div>';
+}
+
+/** Sticky action bar for bottom of page with prev/next or copy buttons. */
+function ui_sticky_bar(string $leftHtml, string $rightHtml): void
+{
+    echo '<div class="sticky-bar"><div class="sticky-bar-left">' . $leftHtml
+       . '</div><div class="sticky-bar-right">' . $rightHtml . '</div></div>';
+}
+
+/** Skeleton loading placeholder. */
+function ui_skeleton(string $type = 'card', int $count = 1): string
+{
+    $out = '';
+    for ($i = 0; $i < $count; $i++) {
+        $out .= '<div class="skeleton skeleton-' . e($type) . '"></div>';
+    }
+    return $out;
+}
+

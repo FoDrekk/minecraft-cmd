@@ -14,6 +14,7 @@
 // official Minecraft rating — it is labelled as such in the UI.
 // ================================================
 require_once __DIR__ . '/../mc.php';
+require_once __DIR__ . '/items.php';
 
 /**
  * Per-enchantment metadata keyed by Minecraft id. Max level and slot
@@ -37,7 +38,7 @@ function enchantMeta(): array
         'knockback'          => ['name' => 'Knockback',            'category' => 'offense', 'tier' => 3, 'desc' => 'Knocks targets back further when hit.'],
         'fire_aspect'        => ['name' => 'Fire Aspect',          'category' => 'offense', 'tier' => 3, 'desc' => 'Sets the target alight on hit.'],
         'looting'            => ['name' => 'Looting',              'category' => 'offense', 'tier' => 4, 'desc' => 'More mob drops, and a chance at rare drops.'],
-        'sweeping'           => ['name' => 'Sweeping Edge',        'category' => 'offense', 'tier' => 3, 'desc' => 'Boosts the sweep-attack damage dealt to nearby mobs.'],
+        'sweeping_edge'      => ['name' => 'Sweeping Edge',        'category' => 'offense', 'tier' => 3, 'desc' => 'Boosts the sweep-attack damage dealt to nearby mobs.', 'edition' => 'java'],
 
         // Mining
         'efficiency'         => ['name' => 'Efficiency',           'category' => 'utility', 'tier' => 5, 'desc' => 'Mines and tills faster.'],
@@ -205,53 +206,109 @@ function items_search_entries(): array
 }
 
 /**
- * items.php declares $ITEMS/$ITEMS_FLAT/$ENCHANTS as bare globals
- * rather than exposing a function, so pulling them into a function's
- * local scope needs a real `require` (not `require_once` — once any
- * other function in the same request has *also* `require`d this file,
- * a later `require_once` here is silently skipped, because PHP tracks
- * every require/include against one shared list regardless of which
- * keyword was used, leaving the caller's $ITEMS_FLAT undefined). This
- * is the one place that does that `require`, cached so it only runs
- * once per request; every other function in this file reads from here.
+ * The legacy {items, flat, enchants} bundle, kept for the pages that
+ * still expect it (api.php, items_search_entries()).
+ *
+ * This used to need a bare `require` of the repository root's items.php
+ * to pull its globals into local scope, with a long comment explaining
+ * why `require_once` silently broke. That hazard is gone: the data now
+ * comes from the Item Registry directly.
  */
 function itemsData(): array
 {
     static $data = null;
     if ($data !== null) return $data;
-    require __DIR__ . '/../../items.php';
-    $data = ['items' => $ITEMS, 'flat' => $ITEMS_FLAT, 'enchants' => $ENCHANTS];
+
+    $items = [];
+    foreach (itemsByCategory() as $cat => $rows) {
+        foreach ($rows as $row) $items[$cat][] = [$row['id'], $row['name']];
+    }
+    $flat = [];
+    foreach ($items as $list) foreach ($list as $row) $flat[] = $row;
+
+    $data = ['items' => $items, 'flat' => $flat, 'enchants' => enchantApplicability()];
     return $data;
 }
 
 /**
- * items.php's $ENCHANTS extended with slots that table does not cover
- * yet (Hoe, Fishing Rod, Shield, Elytra, Mace) — see items.php for those.
+ * The enchantment applicability table, keyed by item-family slot.
  */
 function enchantSlots(): array
 {
-    return itemsData()['enchants'];
+    return enchantApplicability();
 }
 
-/** Maps an item id (diamond_sword, netherite_boots, bow, …) to its slot key in enchantSlots(), or null if it is not enchantable. */
+/**
+ * WHICH enchantments apply to WHICH item family, and their normal
+ * maximum level. Keyed by the TitleCase slot names in
+ * MC_ITEM_FAMILIES (lib/data/items.php).
+ *
+ * This table is the enchantment registry's own data — it describes
+ * enchantments, so it lives here rather than in an item file. It used
+ * to be the global $ENCHANTS in the repository root's items.php.
+ *
+ * Verified against https://minecraft.wiki/w/Enchanting (Java Edition).
+ * Note the mace: Density/Breach/Wind Burst are mace-exclusive, Smite
+ * and Bane of Arthropods apply, but Sharpness does NOT (removed from
+ * maces in snapshot 24w18a).
+ */
+function enchantApplicability(): array
+{
+    return [
+        'Sword'      => [['sharpness', 5], ['smite', 5], ['bane_of_arthropods', 5], ['knockback', 2], ['fire_aspect', 2], ['looting', 3], ['sweeping_edge', 3], ['unbreaking', 3], ['mending', 1]],
+        'Pickaxe'    => [['efficiency', 5], ['silk_touch', 1], ['fortune', 3], ['unbreaking', 3], ['mending', 1]],
+        // Axes take Sword enchantments in Java, but only via an anvil /
+        // enchanted book — not from an enchanting table. The UI states
+        // that rather than hiding it. https://minecraft.wiki/w/Sharpness
+        'Axe'        => [['sharpness', 5], ['smite', 5], ['bane_of_arthropods', 5], ['efficiency', 5], ['silk_touch', 1], ['fortune', 3], ['unbreaking', 3], ['mending', 1]],
+        'Shovel'     => [['efficiency', 5], ['silk_touch', 1], ['fortune', 3], ['unbreaking', 3], ['mending', 1]],
+        'Hoe'        => [['efficiency', 5], ['unbreaking', 3], ['mending', 1]],
+        'Bow'        => [['power', 5], ['punch', 2], ['flame', 1], ['infinity', 1], ['unbreaking', 3], ['mending', 1]],
+        'Crossbow'   => [['multishot', 1], ['piercing', 4], ['quick_charge', 3], ['unbreaking', 3], ['mending', 1]],
+        'Trident'    => [['channeling', 1], ['loyalty', 3], ['impaling', 5], ['riptide', 3], ['unbreaking', 3], ['mending', 1]],
+        'Mace'       => [['density', 5], ['breach', 4], ['wind_burst', 3], ['smite', 5], ['bane_of_arthropods', 5], ['fire_aspect', 2], ['unbreaking', 3], ['mending', 1]],
+        'Helmet'     => [['protection', 4], ['fire_protection', 4], ['blast_protection', 4], ['projectile_protection', 4], ['respiration', 3], ['aqua_affinity', 1], ['thorns', 3], ['unbreaking', 3], ['mending', 1]],
+        'Chestplate' => [['protection', 4], ['fire_protection', 4], ['blast_protection', 4], ['projectile_protection', 4], ['thorns', 3], ['unbreaking', 3], ['mending', 1]],
+        'Leggings'   => [['protection', 4], ['fire_protection', 4], ['blast_protection', 4], ['projectile_protection', 4], ['thorns', 3], ['swift_sneak', 3], ['unbreaking', 3], ['mending', 1]],
+        'Boots'      => [['protection', 4], ['fire_protection', 4], ['feather_falling', 4], ['depth_strider', 3], ['frost_walker', 2], ['soul_speed', 3], ['thorns', 3], ['unbreaking', 3], ['mending', 1]],
+        'Fishing Rod' => [['luck_of_the_sea', 3], ['lure', 3], ['unbreaking', 3], ['mending', 1]],
+        'Shield'     => [['unbreaking', 3], ['mending', 1]],
+        'Elytra'     => [['unbreaking', 3], ['mending', 1]],
+    ];
+}
+
+/**
+ * The normal maximum level for an enchantment id, taking the highest
+ * level offered across every item family that accepts it (Sharpness is
+ * 5 on a sword, and the mace never offers it at all). Enchantments that
+ * apply nowhere — or that the registry does not know — return null
+ * rather than a guessed 1.
+ */
+function enchantMaxLevel(string $enchantId): ?int
+{
+    static $max = null;
+    if ($max === null) {
+        $max = [];
+        foreach (enchantApplicability() as $rows) {
+            foreach ($rows as [$eid, $lvl]) $max[$eid] = max($max[$eid] ?? 0, $lvl);
+        }
+    }
+    return $max[$enchantId] ?? null;
+}
+
+/**
+ * Maps an item id to its slot key in enchantSlots(), or null if it is
+ * not enchantable. Delegates to the Item Registry so item identity is
+ * decided in exactly one place; a namespaced or shouty id
+ * ('minecraft:DIAMOND_SWORD') now resolves the same as a bare one,
+ * which the old suffix-only version silently failed on for the
+ * exact-match items like 'minecraft:bow'.
+ */
 function enchantSlotForItem(string $itemId): ?string
 {
-    $exact = [
-        'bow' => 'Bow', 'crossbow' => 'Crossbow', 'trident' => 'Trident', 'mace' => 'Mace',
-        'fishing_rod' => 'Fishing Rod', 'shield' => 'Shield', 'elytra' => 'Elytra',
-        'turtle_helmet' => 'Helmet',
-    ];
-    if (isset($exact[$itemId])) return $exact[$itemId];
-
-    $suffixes = [
-        '_sword' => 'Sword', '_pickaxe' => 'Pickaxe', '_axe' => 'Axe', '_shovel' => 'Shovel', '_hoe' => 'Hoe',
-        '_helmet' => 'Helmet', '_chestplate' => 'Chestplate', '_leggings' => 'Leggings', '_boots' => 'Boots',
-    ];
-    foreach ($suffixes as $suffix => $slot) {
-        if (str_ends_with($itemId, $suffix)) return $slot;
-    }
-    return null;
+    return itemSlot($itemId);
 }
+
 
 /**
  * Applicable enchantments for one item, filtered to what the selected
@@ -283,7 +340,7 @@ function enchantsForItem(string $itemId, ?string $version = null): array
 function enchantRecommended(string $itemId): array
 {
     $why = [
-        'Sword'   => ['sharpness', 'looting', 'unbreaking', 'mending', 'fire_aspect', 'sweeping'],
+        'Sword'   => ['sharpness', 'looting', 'unbreaking', 'mending', 'fire_aspect', 'sweeping_edge'],
         'Axe'     => ['sharpness', 'efficiency', 'unbreaking', 'mending'],
         'Pickaxe' => ['efficiency', 'fortune', 'unbreaking', 'mending'],
         'Shovel'  => ['efficiency', 'unbreaking', 'mending'],
@@ -302,4 +359,153 @@ function enchantRecommended(string $itemId): array
     ];
     $slot = enchantSlotForItem($itemId);
     return $slot ? ($why[$slot] ?? []) : [];
+}
+
+function enchant_presets(): array {
+    return [
+        'god-sword' => [
+            'name' => 'God Sword',
+            'icon' => '⚔️',
+            'desc' => 'Maximum combat enchantments for the ultimate sword',
+            'slot' => 'sword',
+            'enchants' => [
+                ['id' => 'sharpness', 'level' => 5],
+                ['id' => 'sweeping_edge', 'level' => 3],
+                ['id' => 'looting', 'level' => 3],
+                ['id' => 'fire_aspect', 'level' => 2],
+                ['id' => 'knockback', 'level' => 2],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'god-pickaxe' => [
+            'name' => 'God Pickaxe',
+            'icon' => '⛏️',
+            'desc' => 'The ultimate mining tool for ores',
+            'slot' => 'pickaxe',
+            'enchants' => [
+                ['id' => 'efficiency', 'level' => 5],
+                ['id' => 'fortune', 'level' => 3],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'silk-touch-pick' => [
+            'name' => 'Silk Touch Pick',
+            'icon' => '⛏️',
+            'desc' => 'For collecting blocks exactly as they are',
+            'slot' => 'pickaxe',
+            'enchants' => [
+                ['id' => 'efficiency', 'level' => 5],
+                ['id' => 'silk_touch', 'level' => 1],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'god-axe' => [
+            'name' => 'God Axe',
+            'icon' => '🪓',
+            'desc' => 'Multipurpose tool and devastating weapon',
+            'slot' => 'axe',
+            'enchants' => [
+                ['id' => 'sharpness', 'level' => 5],
+                ['id' => 'efficiency', 'level' => 5],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'max-armor-set' => [
+            'name' => 'Max Armor Set',
+            'icon' => '🛡️',
+            'desc' => 'Standard maximum protection for any armor piece',
+            'slot' => 'armor',
+            'enchants' => [
+                ['id' => 'protection', 'level' => 4],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'god-boots' => [
+            'name' => 'God Boots',
+            'icon' => '🥾',
+            'desc' => 'Ultimate mobility and protection for your feet',
+            'slot' => 'boots',
+            'enchants' => [
+                ['id' => 'protection', 'level' => 4],
+                ['id' => 'feather_falling', 'level' => 4],
+                ['id' => 'depth_strider', 'level' => 3],
+                ['id' => 'soul_speed', 'level' => 3],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'god-helmet' => [
+            'name' => 'God Helmet',
+            'icon' => '🪖',
+            'desc' => 'Maximum protection with underwater utility',
+            'slot' => 'helmet',
+            'enchants' => [
+                ['id' => 'protection', 'level' => 4],
+                ['id' => 'aqua_affinity', 'level' => 1],
+                ['id' => 'respiration', 'level' => 3],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'god-bow' => [
+            'name' => 'God Bow',
+            'icon' => '🏹',
+            'desc' => 'The ultimate ranged weapon (Infinity variant)',
+            'slot' => 'bow',
+            'enchants' => [
+                ['id' => 'power', 'level' => 5],
+                ['id' => 'infinity', 'level' => 1],
+                ['id' => 'flame', 'level' => 1],
+                ['id' => 'punch', 'level' => 2],
+                ['id' => 'unbreaking', 'level' => 3],
+            ],
+        ],
+        'god-trident' => [
+            'name' => 'God Trident',
+            'icon' => '🔱',
+            'desc' => 'Versatile throwing weapon with lightning on demand',
+            'slot' => 'trident',
+            'enchants' => [
+                ['id' => 'loyalty', 'level' => 3],
+                ['id' => 'channeling', 'level' => 1],
+                ['id' => 'impaling', 'level' => 5],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+        'god-crossbow' => [
+            'name' => 'God Crossbow',
+            'icon' => '🏹',
+            'desc' => 'Rapid-fire multishot destruction',
+            'slot' => 'crossbow',
+            'enchants' => [
+                ['id' => 'quick_charge', 'level' => 3],
+                ['id' => 'multishot', 'level' => 1],
+                ['id' => 'unbreaking', 'level' => 3],
+                ['id' => 'mending', 'level' => 1],
+            ],
+        ],
+    ];
+}
+
+function enchant_presets_search_entries(): array {
+    $entries = [];
+    foreach (enchant_presets() as $id => $p) {
+        $entries[] = [
+            'id' => 'preset-' . $id,
+            'icon' => $p['icon'],
+            'title' => $p['name'],
+            'cat' => 'enchant',
+            'href' => 'enchantments.php?preset=' . $id,
+            'accent' => 'gold',
+            'desc' => $p['desc'],
+            'keywords' => 'preset enchantment set ' . strtolower($p['name']) . ' best enchants god',
+        ];
+    }
+    return $entries;
 }

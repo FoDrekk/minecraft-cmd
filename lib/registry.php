@@ -264,7 +264,7 @@ function registry_all(): array
         'ideas.php'       => ['ideas_search_entries'],
         'farms.php'       => ['farms_search_entries'],
         'blueprints.php'  => ['blueprints_search_entries'],
-        'enchantments.php'=> ['enchant_search_entries', 'items_search_entries'],
+        'enchantments.php'=> ['enchant_search_entries', 'items_search_entries', 'enchant_presets_search_entries'],
     ];
     foreach ($content as $file => $fns) {
         $path = __DIR__ . '/data/' . $file;
