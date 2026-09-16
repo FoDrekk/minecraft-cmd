@@ -362,7 +362,7 @@
     el('pl-palette').innerHTML =
       '<div class="swatch-row">' + picks.map(function (p) {
         var b = BLOCK_DATA[p.id] || { name: p.id, hex: '#666' };
-        return '<div class="swatch" style="background:' + b.hex + '" title="' + MC.escapeHtml(p.role + ': ' + b.name) + '"></div>';
+        return MC.visual.blockTile(b.hex, 'sm', p.role + ': ' + b.name, p.id);
       }).join('') + '</div>' +
       picks.map(function (p) {
         var b = BLOCK_DATA[p.id] || { name: p.id };

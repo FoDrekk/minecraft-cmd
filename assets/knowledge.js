@@ -36,7 +36,7 @@
 
     grid.innerHTML = rows.map(function (b) {
       return '<div class="mat-card">' +
-        '<div class="mat-swatch" style="background:' + esc(b.hex) + '"></div>' +
+        MC.visual.blockTile(b.hex, 'md', b.name, b.id) +
         '<div style="min-width:0">' +
         '<div class="mat-name">' + esc(b.name) + '</div>' +
         '<div class="mat-id" data-copy="' + esc(b.id) + '" title="Click to copy the id">' + esc(b.id) + '</div>' +

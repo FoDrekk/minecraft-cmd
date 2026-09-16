@@ -30,15 +30,18 @@
   function esc(s) { return MC.escapeHtml(s); }
 
   /* Cells and swatches paint through the shared resolver
-     (assets/mcvisual.js), so a texture dropped into assets/textures/
-     shows up here with no blueprint-specific mapping of its own. With no
-     asset for the id it stays the Material Library's approximate colour,
-     exactly as before. */
+     (MC.textureSrc(), lib/textures.php's client mirror), so a texture
+     dropped into assets/textures/block/ shows up here automatically —
+     no blueprint-specific mapping of its own. Cells need arbitrary
+     CSS-controlled sizing (zoom), so this returns a style string rather
+     than a fixed-size MC.visual.blockTile() element. With no asset for
+     the id it stays the Material Library's approximate colour. */
   function swatchStyle(meta) {
-    // MC.visual.resolve() (a drop-in real-texture lookup) was removed
-    // from assets/mcvisual.js by the Wiki data-alignment merge, so this
-    // always took the hex fallback in practice already — simplified to
-    // match, rather than call through a branch that can never fire.
+    var src = meta && meta.id ? MC.textureSrc(meta.id, 'block') : null;
+    if (src) {
+      return "background-image:url('" + src + "');background-size:cover;" +
+        'image-rendering:pixelated;image-rendering:crisp-edges';
+    }
     return 'background:' + ((meta && meta.hex) || '#5a6478');
   }
 
