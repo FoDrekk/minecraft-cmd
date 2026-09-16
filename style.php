@@ -180,6 +180,14 @@ body::before {
   .bottom-nav { display: flex; }
 }
 
+/* The explicit column-2 grid region (nav.php / ui_foot()) a page's content
+   renders into. min-width:0 stops a grid item's default auto min-width
+   from forcing the column wider than 1fr when content (e.g. wide
+   .cmdout-body text) would otherwise overflow it. Below 767px body is no
+   longer a grid (see above), so .page-shell is just a plain block there —
+   same stacking as before this wrapper existed. */
+.page-shell { min-width: 0; }
+
 /* ═══════════════════════════════
    PAGE HEADER
 ═══════════════════════════════ */
@@ -349,12 +357,6 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--green); curso
 }
 .btn-ghost:hover { background: rgba(255,255,255,0.04); border-color: var(--border3) }
 
-.btn-outline-green {
-  background: transparent;
-  border-color: rgba(93,190,122,0.4); color: var(--green);
-}
-.btn-outline-green:hover { background: rgba(93,190,122,0.08) }
-
 .btn-sm { padding:5px 11px; font-size:12px }
 .btn-lg { padding:10px 24px; font-size:14px; font-weight:700 }
 
@@ -427,6 +429,26 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--green); curso
   transition: all .12s; font-family: var(--body);
 }
 .chip:hover { border-color: var(--border3); color: var(--text2) }
+.chip.active { border-color: rgba(93,190,122,0.4); color: var(--green); background: rgba(93,190,122,0.08) }
+
+/* ── Validation message — MC.ui.validation() / ui_validation() ── */
+.validation {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-radius: var(--r-sm);
+  font-size: 12px; line-height: 1.6;
+}
+.validation-icon { flex-shrink: 0; font-size: 13px; line-height: 1.5 }
+.validation-body { flex: 1 }
+.validation-title { display: block; font-weight: 700; margin-bottom: 2px }
+.validation-ok    { background: rgba(93,190,122,0.06);  border: 1px solid rgba(93,190,122,0.2);  color: var(--green) }
+.validation-warn  { background: rgba(232,169,74,0.06);  border: 1px solid rgba(232,169,74,0.2);  color: var(--gold) }
+.validation-error { background: rgba(224,85,85,0.06);   border: 1px solid rgba(224,85,85,0.2);   color: var(--red) }
+.validation-info  { background: rgba(91,156,246,0.06);  border: 1px solid rgba(91,156,246,0.2);  color: var(--blue) }
+/* Screen-reader-only text — visually hidden, still announced. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
 
 /* ── Info block ── */
 .info-block {
@@ -609,21 +631,6 @@ kbd {
 .mc-card-prop { font-size:10.5px; font-family:var(--mono); color:var(--text3) }
 
 /* ═══════════════════════════════
-   STICKY ACTION BAR
-═══════════════════════════════ */
-.sticky-bar {
-  position:sticky; bottom:0; z-index:50;
-  display:flex; align-items:center; justify-content:space-between; gap:10px;
-  padding:12px 16px;
-  background:rgba(14,16,20,0.95); backdrop-filter:blur(16px);
-  border-top:1px solid var(--border2); margin-top:20px;
-  border-radius:var(--r-lg) var(--r-lg) 0 0;
-  box-shadow:0 -4px 20px rgba(0,0,0,0.4);
-}
-.sticky-bar-left { display:flex; align-items:center; gap:10px }
-.sticky-bar-right { display:flex; align-items:center; gap:8px }
-
-/* ═══════════════════════════════
    STEP INDICATOR (wizard rail)
 ═══════════════════════════════ */
 .step-indicator {
@@ -651,24 +658,6 @@ kbd {
 .step-item.done { color:var(--text2) }
 .step-item.done .step-num { background:var(--green); border-color:var(--green); color:#0a1a0f }
 .step-item.done::after { background:var(--green) }
-
-/* ═══════════════════════════════
-   SKELETON / LOADING STATES
-═══════════════════════════════ */
-.skeleton {
-  background:var(--bg3); border-radius:var(--r-sm);
-  position:relative; overflow:hidden;
-}
-.skeleton::after {
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
-  animation:skeleton-shimmer 1.5s infinite;
-}
-@keyframes skeleton-shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
-.skeleton-text { height:14px; border-radius:4px; margin-bottom:8px }
-.skeleton-text:last-child { width:60% }
-.skeleton-tile { width:48px; height:48px; border-radius:var(--r) }
-.skeleton-card { height:80px; border-radius:var(--r) }
 
 /* ═══════════════════════════════
    BLUEPRINT VIEWER — assets/blueprint.js, shared by Build Ideas + Farms
@@ -743,28 +732,6 @@ kbd {
 .cmdout-actions { display:flex; gap:7px; flex-wrap:wrap; padding:10px 14px; border-top:1px solid var(--border) }
 
 /* ═══════════════════════════════
-   WIZARD STEPS
-═══════════════════════════════ */
-.steps { display:flex; gap:4px; flex-wrap:wrap; margin-bottom:14px }
-.step {
-  display:flex; align-items:center; gap:7px; padding:6px 12px;
-  border:1px solid var(--border); border-radius:20px;
-  font-size:12px; color:var(--text3); background:var(--bg2);
-  cursor:pointer; transition:all .15s; user-select:none;
-}
-.step:hover { border-color:var(--border3); color:var(--text2) }
-.step-n {
-  width:17px; height:17px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center;
-  font-size:10px; font-family:var(--mono); font-weight:700;
-  background:var(--border); color:var(--text3);
-}
-.step.active { border-color:rgba(93,190,122,0.35); color:var(--green); background:rgba(93,190,122,0.07); font-weight:600 }
-.step.active .step-n { background:var(--green); color:#0b1a10 }
-.step.done { color:var(--text2) }
-.step.done .step-n { background:rgba(93,190,122,0.25); color:var(--green) }
-
-/* ═══════════════════════════════
    CHECKLIST
 ═══════════════════════════════ */
 .checklist { display:flex; flex-direction:column; gap:2px }
@@ -775,7 +742,16 @@ kbd {
 }
 .check-row:hover { background:rgba(255,255,255,0.03) }
 .check-row input { width:15px; height:15px; accent-color:var(--green); cursor:pointer; flex-shrink:0 }
-.check-row input:checked + span { color:var(--text3); text-decoration:line-through }
+/* ~ not + : a visual row has a chip between the checkbox and the label,
+   which an adjacent-sibling selector would miss. */
+.check-row input:checked ~ span { color:var(--text3); text-decoration:line-through }
+.check-row-visual { padding:5px 9px }
+
+/* Restored 2026-09 alongside ui_material_chip() — a material's visual
+   tile in a checklist row (Sugar Cane Farm, Creeper Farm). */
+.mc-chip { width:24px; height:24px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12); font-size:13px; line-height:1 }
+.mc-chip-glyph { background:var(--bg3) }
 
 /* ═══════════════════════════════
    EMPTY STATE
@@ -789,9 +765,8 @@ kbd {
    MISC LAYOUT HELPERS
 ═══════════════════════════════ */
 .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px }
-.grid-3 { display:grid; grid-template-columns:repeat(3,1fr); gap:14px }
 .split { display:grid; grid-template-columns:1fr 340px; gap:16px; align-items:start }
-@media(max-width:980px){ .grid-2,.grid-3,.split{grid-template-columns:1fr} }
+@media(max-width:980px){ .grid-2,.split{grid-template-columns:1fr} }
 .stack { display:flex; flex-direction:column; gap:14px }
 .inline { display:flex; align-items:center; gap:8px; flex-wrap:wrap }
 .muted { color:var(--text3) }
@@ -804,10 +779,6 @@ kbd {
 }
 .pill:hover { border-color:var(--border3); color:var(--text2) }
 .pill.active { border-color:rgba(93,190,122,0.4); color:var(--green); background:rgba(93,190,122,0.08) }
-.stat-row { display:flex; gap:16px; flex-wrap:wrap }
-.stat { flex:1; min-width:96px }
-.stat-val { font-size:22px; font-weight:800; font-family:var(--mono); color:var(--green); line-height:1.2 }
-.stat-lbl { font-size:10px; font-family:var(--mono); letter-spacing:1.2px; text-transform:uppercase; color:var(--text3); margin-top:2px }
 
 </style>
 

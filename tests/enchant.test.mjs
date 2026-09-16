@@ -192,8 +192,8 @@ const searchResult = await page.evaluate(async () => {
 has('global search surfaces the Enchantment Hub', searchResult.join(','), 'enchantments.php');
 
 await page.goto(`${BASE}/enchantments.php`, { waitUntil: 'domcontentloaded' });
-check('Tools nav item is active on the Enchantment Hub page',
-  await page.locator('.nav-link.active').first().textContent().then(t => t.trim().includes('Tools')), true);
+check('Commands nav item is active on the Enchantment Hub page',
+  await page.locator('.nav-link.active').first().textContent().then(t => t.trim().includes('Commands')), true);
 
 // ── TARGET: quick selector chips, custom names, live validation ──
 const says = async () => (await page.textContent('#eh-target-says')).trim();

@@ -1,38 +1,23 @@
-// The shared visual foundation: asset registry, texture resolver, the
-// fallback chain, and the shared UI components built on top of it.
+// The current shared visual foundation: CSS pixel-art textures
+// (assets/textures.js, MC.tex) plus the SVG-glyph/colour fallback tiles
+// built on top of it (assets/mcvisual.js, MC.visual), and the shared
+// validation component (MC.ui.validation) used by the Enchantment Hub.
 //
-// The repository ships no Minecraft textures (they are not ours to
-// redistribute), so the drop-in path is proved by writing a fixture into
-// assets/textures/ during the run and removing it again. That exercises
-// the real code path rather than a mock.
+// Rewritten 2026-09: the previous version of this file tested a real-file
+// drop-in texture registry (lib/textures.php + MC.visual.resolve/render)
+// that a later merge removed from the app entirely in favour of this
+// CSS-pixel-art system. That PHP registry and its now-dead references
+// were removed as part of the same cleanup that rewrote this file — see
+// lib/textures.php's deletion. Nothing here tests functionality the app
+// no longer has.
 import { launchChromium } from './_launch.mjs';
-import { writeFileSync, unlinkSync, existsSync, mkdirSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
 
 const BASE = process.env.MCCMD_BASE || 'http://127.0.0.1:8899';
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
-const TEX_DIR = join(ROOT, 'assets', 'textures');
 
 let pass = 0, fail = 0;
 const failures = [];
 const check = (n, a, e) => (a === e ? pass++ : (fail++, failures.push(`${n}\n    expected: ${e}\n    actual:   ${a}`)));
 const has = (n, h, s) => (String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    expected to contain: ${s}\n    actual: ${h}`)));
-
-// A 1x1 PNG. Deliberately not a Minecraft texture — it only has to be a
-// real image file so the pipeline has something genuine to resolve.
-const PNG_1PX = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-  'base64');
-
-const FIXTURES = ['zz_probe_item.png', 'sand.png'];
-function writeFixtures() {
-  if (!existsSync(TEX_DIR)) mkdirSync(TEX_DIR, { recursive: true });
-  for (const f of FIXTURES) writeFileSync(join(TEX_DIR, f), PNG_1PX);
-}
-function removeFixtures() {
-  for (const f of FIXTURES) { try { unlinkSync(join(TEX_DIR, f)); } catch {} }
-}
 
 const browser = await launchChromium();
 const page = await browser.newPage();
@@ -41,110 +26,71 @@ await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
 page.on('pageerror', e => { fail++; failures.push('PAGE ERROR: ' + e.message); });
 
 try {
-  // ── WITH NO ASSETS: the honest fallback chain ──────────────────
-  removeFixtures();
   await page.goto(`${BASE}/index.php`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.MC && window.MC.visual);
+  await page.waitForFunction(() => window.MC && MC.tex && MC.visual);
 
-  const bare = await page.evaluate(() => ({
-    manifestEmpty: Object.keys(MC.data.textures).length === 0,
-    sword: MC.visual.resolve('diamond_sword'),
-    planks: MC.visual.resolve('oak_planks'),
-    nonsense: MC.visual.resolve('not_a_real_minecraft_thing'),
-    prefixed: MC.visual.resolve('minecraft:stone'),
-    messy: MC.visual.resolve('  Diamond Sword  '),
+  // ── MC.tex — the CSS pixel-art texture system ──────────────────
+  const tex = await page.evaluate(() => ({
+    hasKnown: MC.tex.has('diamond_sword'),
+    hasAlias: MC.tex.has('grass'),
+    hasUnknown: MC.tex.has('not_a_real_minecraft_thing'),
+    known: MC.tex.render('diamond_sword', 'md'),
+    unknown: MC.tex.render('not_a_real_minecraft_thing', 'md'),
   }));
-  check('no textures shipped in the repository', bare.manifestEmpty, true);
-  check('equipment falls back to its drawn glyph', bare.sword.source, 'equipment');
-  check('the glyph is picked from the id', bare.sword.category, 'Sword');
-  check('a block falls back to its palette colour', bare.planks.source, 'block');
-  check('that colour is the Material Library one', bare.planks.hex, '#b08a52');
-  check('an unknown id lands on the neutral fallback', bare.nonsense.source, 'fallback');
-  check('nothing unknown invents a colour', bare.nonsense.hex, null);
-  check('a minecraft: prefix is stripped', bare.prefixed.source, 'block');
-  check('spaces and case are normalised', bare.messy.id, 'diamond_sword');
+  check('a drawn texture exists for a known item', tex.hasKnown, true);
+  check('the alias table resolves grass -> grass_block', tex.hasAlias, true);
+  check('an unrecognised id has no texture', tex.hasUnknown, false);
+  has('a known item renders as pixel-art (box-shadow grid)', tex.known, 'box-shadow');
+  check('a fallback never emits a broken <img>', tex.unknown.includes('<img'), false);
+  has('the fallback is visibly marked, not invisible', tex.unknown, 'mc-tex-missing');
 
-  // pickaxe must not be read as axe — alternation order matters
-  const tools = await page.evaluate(() => ['diamond_pickaxe', 'iron_axe', 'golden_shovel', 'netherite_hoe']
-    .map(id => MC.visual.resolve(id).category));
-  check('pickaxe resolves to Pickaxe, not Axe', tools.join(','), 'Pickaxe,Axe,Shovel,Hoe');
-
-  // Rendered markup: never a broken image, always labelled or hidden
-  const markup = await page.evaluate(() => ({
-    labelled: MC.visual.render('oak_planks', { size: 'sm', label: 'Oak Planks' }),
-    bare: MC.visual.render('oak_planks', { size: 'sm' }),
-    unknown: MC.visual.render('nope_not_real', { size: 'md' }),
+  // ── MC.visual — the tile/card layer every page renders through ──
+  const visual = await page.evaluate(() => ({
+    equip: MC.visual.equipmentTile('Sword', 'diamond_sword', 'lg'),
+    block: MC.visual.blockTile('#7CBD6B', 'md', 'Grass Block'),
+    card: MC.visual.itemCard('diamond_sword', 'Diamond Sword', { Damage: '7' }),
+    cardEscaped: MC.visual.itemCard('x', '<img src=x onerror=alert(1)>', null),
   }));
-  has('a labelled visual is exposed as an image', markup.labelled, 'role="img"');
-  has('...with the name as its accessible label', markup.labelled, 'aria-label="Oak Planks"');
-  has('an unlabelled visual is hidden from screen readers', markup.bare, 'aria-hidden="true"');
-  check('a fallback renders no <img> to break', markup.unknown.includes('<img'), false);
-  has('the fallback is marked as such', markup.unknown, 'mc-visual-fallback');
+  has('an equipment tile renders a tile container', visual.equip, 'mc-tile');
+  has('a known equipment item is drawn from MC.tex, not the SVG fallback', visual.equip, 'mc-tile-tex');
+  has('a block tile renders a tile container', visual.block, 'mc-block-tile');
+  has('an item card shows its name', visual.card, 'Diamond Sword');
+  has('an item card shows its passed properties', visual.card, 'Damage: 7');
+  check('item card names are escaped, not injected', visual.cardEscaped.includes('<img src=x'), false);
 
-  // ── WITH AN ASSET PRESENT: the drop-in path ───────────────────
-  writeFixtures();
-  await page.goto(`${BASE}/index.php`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.MC && Object.keys(MC.data.textures).length > 0);
-
-  const dropped = await page.evaluate(() => ({
-    probe: MC.visual.resolve('zz_probe_item'),
-    sand: MC.visual.resolve('sand'),
-    html: MC.visual.render('zz_probe_item', { size: 'lg', label: 'Probe' }),
-  }));
-  check('a dropped-in file is found with no code change', dropped.probe.source, 'asset');
-  has('...and resolves to its real path', dropped.probe.src, 'assets/textures/zz_probe_item.png');
-  check('a real texture beats the palette colour', dropped.sand.source, 'asset');
-  has('a real texture renders as an image', dropped.html, '<img src="assets/textures/zz_probe_item.png"');
-  has('textures load lazily', dropped.html, 'loading="lazy"');
-
-  // The file is genuinely served, not just referenced
-  const texRes = await page.request.get(`${BASE}/assets/textures/zz_probe_item.png`);
-  check('the texture is actually served', texRes.status(), 200);
-  has('...as an image', texRes.headers()['content-type'], 'image');
-
-  // ── BLUEPRINT CONSUMES THE SAME RESOLVER ──────────────────────
-  await page.goto(`${BASE}/farms.php?farm=sugar-cane`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.MC && document.querySelector('#bp-viewport-farm .bp-grid'));
-  const cells = await page.$$eval('.bp-cell:not(.bp-cell-air)', els => els.map(e => e.getAttribute('style')));
-  check('blueprint cells paint the dropped-in texture',
-    cells.filter(s => s.includes('assets/textures/sand.png')).length, 12);
-  check('cells with no texture keep their colour',
-    cells.some(s => s.startsWith('background:#')), true);
-  check('the server-rendered material chip uses it too',
-    await page.locator('.mc-chip-tex img').count() > 0, true);
-
-  // Removing the asset must fall straight back, with nothing left broken
-  removeFixtures();
-  await page.goto(`${BASE}/farms.php?farm=sugar-cane`, { waitUntil: 'domcontentloaded' });
-  await page.waitForFunction(() => window.MC && document.querySelector('#bp-viewport-farm .bp-grid'));
-  const after = await page.$$eval('.bp-cell:not(.bp-cell-air)', els => els.map(e => e.getAttribute('style')));
-  check('removing the asset falls back cleanly', after.some(s => s.includes('assets/textures')), false);
-  check('every cell still paints something', after.every(s => s && s.length > 0), true);
-
-  // ── SHARED COMPONENTS ─────────────────────────────────────────
-  const comps = await page.evaluate(() => ({
+  // ── MC.ui.validation — shared by the Enchantment Hub target field ──
+  const val = await page.evaluate(() => ({
     ok: MC.ui.validation('ok', 'Works on Java 1.21+.'),
     err: MC.ui.validation('error', 'That selector is not real.', 'Invalid target'),
-    bogus: MC.ui.validation('nonsense-kind', 'Unknown severity.'),
     escaped: MC.ui.validation('info', '<img src=x onerror=alert(1)>'),
   }));
-  has('a success message carries its icon as text', comps.ok, '<i class="validation-icon" aria-hidden="true">✓</i>');
-  has('severity is announced, not just coloured', comps.ok, '<span class="sr-only">Valid: </span>');
-  has('errors are announced to screen readers', comps.err, 'role="alert"');
-  has('...and can carry a title', comps.err, '<b class="validation-title">Invalid target</b>');
-  has('an unknown severity degrades to info', comps.bogus, 'validation-info');
-  check('validation text is escaped, not injected', comps.escaped.includes('<img src=x'), false);
-  has('...it is shown as text instead', comps.escaped, '&lt;img');
+  has('a success message carries its icon as text', val.ok, '✓');
+  has('severity is announced for screen readers', val.ok, 'sr-only');
+  has('errors are announced as alerts', val.err, 'role="alert"');
+  has('...and can carry a title', val.err, 'Invalid target');
+  check('validation text is escaped, not injected', val.escaped.includes('<img src=x'), false);
+
+  // ── LIVE PAGES actually use these without erroring ──────────────
+  await page.goto(`${BASE}/knowledge.php?t=items`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.item-card .mc-tile, .item-card .mc-block-tile', { timeout: 10000 });
+  check('Knowledge Items renders visual tiles', await page.locator('.item-card .mc-tile, .item-card .mc-block-tile').count() > 0, true);
+
+  await page.goto(`${BASE}/enchantments.php`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.mc-tile', { timeout: 10000 });
+  check('Enchantment Hub renders an equipment tile', await page.locator('.mc-tile').count() > 0, true);
 
   // ── ACCESSIBILITY + MOBILE FOUNDATION ─────────────────────────
+  // A real Tab keypress (not a scripted .focus()) is what actually
+  // triggers :focus-visible matching in Chromium, so this is the
+  // honest way to check a keyboard user gets a visible ring.
+  await page.keyboard.press('Tab');
   const focusRing = await page.evaluate(() => {
-    const btn = document.querySelector('.btn');
-    if (!btn) return null;
-    btn.focus();
-    const s = getComputedStyle(btn);
-    return { outline: s.outlineStyle, width: s.outlineWidth };
+    const el = document.activeElement;
+    if (!el || !el.matches('.btn, a, button, input, select')) return null;
+    const s = getComputedStyle(el);
+    return { outline: s.outlineStyle };
   });
-  check('buttons show a focus ring for keyboard users', focusRing && focusRing.outline !== 'none', true);
+  check('keyboard focus shows a visible ring', focusRing && focusRing.outline !== 'none', true);
 
   for (const [label, width] of [['mobile', 390], ['tablet', 768]]) {
     await page.setViewportSize({ width, height: 800 });
@@ -158,7 +104,6 @@ try {
   }
   await page.setViewportSize({ width: 1280, height: 900 });
 } finally {
-  removeFixtures();
   await browser.close();
 }
 

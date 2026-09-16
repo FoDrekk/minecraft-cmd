@@ -419,19 +419,6 @@ function gameColors(): array
     ];
 }
 
-// ── TARGET SELECTORS ─────────────────────────────
-function gameSelectors(): array
-{
-    return [
-        '@p' => 'Nearest player',
-        '@a' => 'All players',
-        '@r' => 'Random player',
-        '@s' => 'Yourself (whoever runs it)',
-        '@e' => 'All entities',
-        '@n' => 'Nearest entity',
-    ];
-}
-
 // ── ATTRIBUTES ───────────────────────────────────
 // `legacy` is the pre-1.21 id, which carried a generic./player./horse.
 // prefix. gameAttributeId() picks the right one for a version.

@@ -128,6 +128,7 @@ function blocksAll(): array
 
         // ── NATURE ───────────────────────────────
         'grass_block'              => ['Grass Block',              'Nature', '#79a54b', 'landscaping',              'Terrain surface.'],
+        'dirt'                     => ['Dirt',                     'Nature', '#8b6b4b', 'rustic,landscaping',       'The plain block under grass — cheap and always available.'],
         'dirt_path'                => ['Dirt Path',                'Nature', '#977f4b', 'rustic,landscaping',       'The cheapest way to make a build look lived-in.'],
         'coarse_dirt'              => ['Coarse Dirt',              'Nature', '#77553a', 'rustic,landscaping',       'Grass will not spread onto it — good for worn ground.'],
         'podzol'                   => ['Podzol',                   'Nature', '#5c4020', 'rustic,fantasy',           'Forest floor. Lets you plant mushrooms in light.'],
@@ -170,6 +171,7 @@ function blocksAll(): array
         'chest'                    => ['Chest',                    'Functional', '#8a6a35', 'any',                  ''],
         'hopper'                   => ['Hopper',                   'Functional', '#4a4a4e', 'any',                  'Moves items. Core of nearly every farm.'],
         'observer'                 => ['Observer',                 'Functional', '#5f5f5f', 'any',                  'Detects block updates in front of it.'],
+        'piston'                   => ['Piston',                   'Functional', '#7a6f52', 'any',                  'Pushes a block when powered. Core of most farms.'],
         'dispenser'                => ['Dispenser',                'Functional', '#767676', 'any',                  'Fires items. Water buckets, arrows, fireworks.'],
         'note_block'               => ['Note Block',               'Functional', '#6b4b2c', 'any',                  ''],
         'command_block'            => ['Command Block',            'Functional', '#c19a6b', 'any',                  'Creative only. /give yourself one.'],
@@ -180,6 +182,7 @@ function blocksAll(): array
         // ── FARMING ──────────────────────────────
         'farmland'                 => ['Farmland',                 'Farming', '#5b3a21', 'any',                     'Tilled with a hoe. Needs water within 4 blocks to stay hydrated.'],
         'wheat'                    => ['Wheat (crop)',              'Farming', '#d4c04a', 'any',                     'Grows on farmland. Harvest at the fully golden stage.'],
+        'sugar_cane'               => ['Sugar Cane',                'Farming', '#7cbd6b', 'any',                     'Grows next to water on random ticks. No farmland needed.'],
     ];
 }
 

@@ -7,6 +7,7 @@
 // no template engine, no build step.
 // ================================================
 require_once __DIR__ . '/mc.php';
+require_once __DIR__ . '/data/blocks.php';
 
 function e(?string $s): string
 {
@@ -36,7 +37,7 @@ function ui_page_header(string $icon, string $title, string $sub = ''): void
 
 function ui_foot(): void
 {
-    echo "\n</body>\n</html>";
+    echo "\n</main>\n</body>\n</html>";
 }
 
 /** Card wrapper. Pass a closure that renders the body. */
@@ -68,11 +69,6 @@ function ui_select(string $id, array $options, string $selected = '', string $at
     return $out . '</select>';
 }
 
-function ui_input(string $id, string $value = '', string $attrs = ''): string
-{
-    return '<input id="' . e($id) . '" value="' . e($value) . '" ' . $attrs . '>';
-}
-
 /**
  * The shared command output surface.
  * JS drives it with MC.setCommand(id, text, {warnings:[…]}).
@@ -98,6 +94,31 @@ function ui_cmdout(string $id, string $tab = 'cmd', array $actions = ['copy', 'c
     echo '</div></div>';
 }
 
+/**
+ * A small visual tile for one material: the catalogued block's palette
+ * colour when it is a real block id, otherwise a plain emoji glyph the
+ * caller supplies. Restored 2026-09 — farms.php's structured materials
+ * list (materials_v) still calls this; it was removed from lib/ui.php
+ * by the Wiki data-alignment merge without a replacement, which left
+ * every farm with materials_v (Sugar Cane, Creeper) fatal-erroring.
+ * Kept deliberately simple (hex/glyph only, no texture lookup) to match
+ * the app's current visual approach rather than reintroducing the
+ * separate drop-in texture pipeline this repo no longer wires up.
+ */
+function ui_material_chip(?string $blockId = null, ?string $glyph = null): string
+{
+    if ($blockId !== null) {
+        $row = blocksAll()[$blockId] ?? null;
+        if ($row) {
+            return '<span class="mc-chip" style="background:' . e($row[2]) . '" title="' . e($row[0]) . '" aria-hidden="true"></span>';
+        }
+    }
+    if ($glyph !== null && $glyph !== '') {
+        return '<span class="mc-chip mc-chip-glyph" aria-hidden="true">' . $glyph . '</span>';
+    }
+    return '<span class="mc-chip mc-chip-glyph" aria-hidden="true">◻️</span>';
+}
+
 function ui_warn(string $text, string $kind = 'warn'): string
 {
     $icon = $kind === 'error' ? '⛔' : ($kind === 'info' ? 'ℹ️' : '⚠');
@@ -105,25 +126,22 @@ function ui_warn(string $text, string $kind = 'warn'): string
     return '<div class="' . $cls . '">' . $icon . ' ' . $text . '</div>';
 }
 
-/** Numbered wizard rail. $steps = ['Define area', 'Choose block', …] */
-function ui_steps(array $steps, int $active = 1, string $id = ''): void
-{
-    echo '<div class="steps"' . ($id ? ' id="' . e($id) . '"' : '') . '>';
-    foreach ($steps as $i => $label) {
-        $n   = $i + 1;
-        $cls = $n === $active ? ' active' : ($n < $active ? ' done' : '');
-        echo '<div class="step' . $cls . '" data-step="' . $n . '"><span class="step-n">' . $n . '</span>' . e($label) . '</div>';
-    }
-    echo '</div>';
-}
-
 /** Tickable materials list. State persists per key in localStorage. */
+/**
+ * Restored 2026-09: an item may be a plain string (original behaviour)
+ * or ['label' => ..., 'chip' => html] to show a visual tile before the
+ * label — see ui_material_chip(). farms.php's structured materials list
+ * still passes the array shape; without this it TypeErrors on e($item).
+ */
 function ui_checklist(string $key, array $items): void
 {
     echo '<div class="checklist" data-checklist="' . e($key) . '">';
     foreach ($items as $i => $item) {
-        $id = 'ck_' . e($key) . '_' . $i;
-        echo '<label class="check-row"><input type="checkbox" id="' . $id . '" data-ck="' . $i . '"><span>' . e($item) . '</span></label>';
+        $id    = 'ck_' . e($key) . '_' . $i;
+        $label = is_array($item) ? $item['label'] : $item;
+        $chip  = is_array($item) ? ($item['chip'] ?? '') : '';
+        $cls   = 'check-row' . ($chip !== '' ? ' check-row-visual' : '');
+        echo '<label class="' . $cls . '"><input type="checkbox" id="' . $id . '" data-ck="' . $i . '">' . $chip . '<span>' . e($label) . '</span></label>';
     }
     echo '</div>';
 }
@@ -191,10 +209,15 @@ function ui_tile(string $href, string $icon, string $title, string $desc, string
 function ui_runtime_data(): void
 {
     $data = [
-        'versions' => MC_VERSIONS,
-        'syntax'   => MC_SYNTAX,
-        'features' => MC_FEATURES,
-        'current'  => mcCurrentVersion(),
+        'versions'  => MC_VERSIONS,
+        'syntax'    => MC_SYNTAX,
+        'features'  => MC_FEATURES,
+        // Restored 2026-09: assets/mccmd.js's MC.validateTarget() and the
+        // Enchantment Hub's target-selector chips read this. Without it
+        // every selector (@p, @s, @a, @r) is reported as invalid and the
+        // Enhance Item flow generates no command at all.
+        'selectors' => MC_SELECTORS,
+        'current'   => mcCurrentVersion(),
     ];
     echo '<script>window.MC_DATA=' . json_encode($data, JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
 }
@@ -215,22 +238,5 @@ function ui_step_indicator(array $steps, int $active = 1, string $id = ''): void
             . e($label) . '</div>';
     }
     echo '</div>';
-}
-
-/** Sticky action bar for bottom of page with prev/next or copy buttons. */
-function ui_sticky_bar(string $leftHtml, string $rightHtml): void
-{
-    echo '<div class="sticky-bar"><div class="sticky-bar-left">' . $leftHtml
-       . '</div><div class="sticky-bar-right">' . $rightHtml . '</div></div>';
-}
-
-/** Skeleton loading placeholder. */
-function ui_skeleton(string $type = 'card', int $count = 1): string
-{
-    $out = '';
-    for ($i = 0; $i < $count; $i++) {
-        $out .= '<div class="skeleton skeleton-' . e($type) . '"></div>';
-    }
-    return $out;
 }
 

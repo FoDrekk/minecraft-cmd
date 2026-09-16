@@ -35,12 +35,10 @@
      asset for the id it stays the Material Library's approximate colour,
      exactly as before. */
   function swatchStyle(meta) {
-    var r = (meta && meta.id && MC.visual && MC.visual.resolve) ? MC.visual.resolve(meta.id) : null;
-    if (r && r.src) {
-      // Real quotes here: the whole attribute is HTML-escaped below, and
-      // the parser turns &quot; back into " before the CSS is read.
-      return 'background-image:url("' + String(r.src).replace(/["\\]/g, '\\$&') + '")';
-    }
+    // MC.visual.resolve() (a drop-in real-texture lookup) was removed
+    // from assets/mcvisual.js by the Wiki data-alignment merge, so this
+    // always took the hex fallback in practice already — simplified to
+    // match, rather than call through a branch that can never fire.
     return 'background:' + ((meta && meta.hex) || '#5a6478');
   }
 

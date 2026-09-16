@@ -143,12 +143,12 @@ $presetItem = $_GET['item'] ?? '';
             <?= ui_field('Target', '<input id="eh-target" value="@p" placeholder="@p, @s, @a, or player name" oninput="ehRebuild()">') ?>
             <?= ui_field('Count', '<input id="eh-count" type="number" min="1" max="6400" value="1" oninput="ehRebuild()">') ?>
           </div>
-          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">
-            <button class="chip" onclick="document.getElementById('eh-target').value='@s';ehRebuild()">@s (self)</button>
-            <button class="chip" onclick="document.getElementById('eh-target').value='@p';ehRebuild()">@p (nearest)</button>
-            <button class="chip" onclick="document.getElementById('eh-target').value='@a';ehRebuild()">@a (all)</button>
-            <button class="chip" onclick="document.getElementById('eh-target').value='@r';ehRebuild()">@r (random)</button>
+          <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">
+            <?php foreach (MC_SELECTORS as $sel => $info): if (!$info['quick']) continue; ?>
+            <button type="button" class="chip" data-eh-target="<?= e($sel) ?>"><?= e($sel) ?> — <?= e($info['label']) ?></button>
+            <?php endforeach; ?>
           </div>
+          <div id="eh-target-says" style="margin-bottom:12px"></div>
           <div class="row">
             <?= ui_field('Custom name (optional)', '<input id="eh-name" placeholder="e.g. Boss Killer" oninput="ehRebuild()">') ?>
             <?= ui_field('Name colour', '<select id="eh-name-color" onchange="ehRebuild()"></select>') ?>

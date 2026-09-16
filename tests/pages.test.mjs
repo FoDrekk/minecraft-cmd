@@ -55,7 +55,7 @@ for (const p of PAGES) {
   await page.waitForTimeout(150);
   check(`${p}: loads`, res.status(), 200);
   check(`${p}: no JS errors`, jsErrors.join(' | '), '');
-  has(`${p}: has navigation`, await page.content(), 'class="topnav"');
+  has(`${p}: has navigation`, await page.content(), 'class="sidebar"');
 }
 
 for (const [p, marker, query] of REMOVED_PAGES) {
@@ -75,7 +75,7 @@ for (const [p, marker, query] of REMOVED_PAGES) {
 
 // ── NAVIGATION LINKS ────────────────────────────
 await page.goto(`${BASE}/index.php`);
-const navLinks = await page.$$eval('.topnav .nav-link', els => els.map(e => e.getAttribute('href')));
+const navLinks = await page.$$eval('.sidebar .nav-link', els => els.map(e => e.getAttribute('href')));
 for (const href of navLinks) {
   const r = await page.request.get(`${BASE}/${href}`);
   check(`nav link ${href}`, r.status(), 200);

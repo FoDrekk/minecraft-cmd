@@ -434,5 +434,6 @@ initColors();
 renderNbtItems();
 buildNbt();
 </script>
+</main>
 </body>
 </html>
