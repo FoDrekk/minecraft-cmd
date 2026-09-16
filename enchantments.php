@@ -13,12 +13,16 @@ require_once __DIR__ . '/lib/data/enchantments.php';
 require_once __DIR__ . '/items.php';
 
 // Only items an enchantment slot actually exists for are offered —
-// arrows, food, blocks etc. in items.php stay out of the picker.
+// arrows, food, blocks etc. in items.php stay out of the picker. Built
+// from itemsByCategory() (unfiltered — every version) rather than the
+// legacy $ITEMS global, so each row keeps its 'min' rank: the picker
+// needs every item present client-side to lock/unlock instantly as the
+// version selector changes, not just the ones valid for today's cookie.
 $enchItemGroups = [];
-foreach ($ITEMS as $cat => $list) {
-    foreach ($list as [$id, $name]) {
-        $slot = enchantSlotForItem($id);
-        if ($slot) $enchItemGroups[$cat][] = ['id' => $id, 'name' => $name, 'slot' => $slot];
+foreach (itemsByCategory() as $cat => $rows) {
+    foreach ($rows as $row) {
+        $slot = enchantSlotForItem($row['id']);
+        if ($slot) $enchItemGroups[$cat][] = ['id' => $row['id'], 'name' => $row['name'], 'slot' => $slot, 'min' => $row['min'] ?? 0];
     }
 }
 

@@ -227,6 +227,11 @@ function ui_runtime_data(): void
         // guesses at this; it only renders an <img> for an id present
         // here, and falls back to an honest placeholder otherwise.
         'textures'  => texturesManifestAll(),
+        // Modern-era (1.20.5+) overrides for the small number of ids
+        // whose art was redrawn — see lib/textures.php. Kept as a
+        // separate, much smaller map rather than merged into the main
+        // manifest, so the common case (no override) costs nothing.
+        'texturesModern' => texturesManifestModernAll(),
     ];
     echo '<script>window.MC_DATA=' . json_encode($data, JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
 }

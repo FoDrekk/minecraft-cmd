@@ -173,6 +173,16 @@ const MC_FEATURES = [
     // the oldest 1.21.x entry in MC_VERSIONS.
     'mace'              => 55,  // 1.21+
 
+    // A small number of vanilla textures were redrawn during the
+    // 1.20.5+ art pass (e.g. candle, red_nether_bricks, green_dye,
+    // cooked_cod — confirmed by pixel-diffing the pre-1.20.5 and
+    // 1.20.5–26.2 supplied archives; most textures are unchanged).
+    // lib/textures.php's resolver uses this to prefer a texture's
+    // assets/textures/<kind>/_modern/<id>.png variant, when one has
+    // been supplied, over the legacy/default file for versions at or
+    // above this rank.
+    'modern_textures'   => 50,  // 1.20.5+ (rank 50 = 1.20.6, the oldest table entry in that era)
+
 ];
 
 /** All versions, newest first. */

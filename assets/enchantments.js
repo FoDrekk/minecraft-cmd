@@ -34,8 +34,23 @@
   /* ── ITEM PICKER ──────────────────────────────── */
   var curCat = '';
 
+  // Data-driven, not a per-item special case: any item whose registry
+  // row carries 'min' (lib/data/items.php) locks/unlocks by the same
+  // rule, with no new code needed when the next version-gated item is
+  // added to the registry.
   function itemGateOk(item) {
-    return item.slot !== 'Mace' || MC.has('mace');
+    return (item.min || 0) <= MC.v().rank;
+  }
+
+  /** The lowest non-Bedrock version label that satisfies a 'min' rank. */
+  function minVersionLabel(minRank) {
+    var best = null;
+    Object.keys(MC.versions).forEach(function (id) {
+      var v = MC.versions[id];
+      if (v.edition === 'bedrock' || v.rank < minRank) return;
+      if (!best || v.rank < best.rank) best = v;
+    });
+    return best ? best.label : '';
   }
 
   function renderItemGrid() {
@@ -59,7 +74,7 @@
       return '<div class="eh-item-card' + (locked ? ' locked' : sel) + '" data-eh-item="' + item.id + '" data-eh-slot="' + item.slot + '">' +
         tileHtml(item.slot, item.id) +
         '<div class="eh-item-name">' + esc(item.name) + '</div>' +
-        (locked ? '<div class="eh-item-lock">Needs Java 1.21+</div>' : '') +
+        (locked ? '<div class="eh-item-lock">Needs Java ' + esc(minVersionLabel(item.min)) + '+</div>' : '') +
         '</div>';
     }).join('');
   }
