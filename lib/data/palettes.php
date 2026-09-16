@@ -116,7 +116,7 @@ function palettePresets(): array
         'ocean-temple' => [
             'name' => 'Ocean Temple', 'style' => 'ocean',
             'desc' => 'Sea greens with copper going green to match.',
-            'blocks' => ['main' => 'prismarine_bricks', 'secondary' => 'dark_prismarine', 'accent' => 'oxidised_copper',
+            'blocks' => ['main' => 'prismarine_bricks', 'secondary' => 'dark_prismarine', 'accent' => 'oxidized_copper',
                          'detail' => 'calcite', 'lighting' => 'sea_lantern'],
         ],
     ];
@@ -134,7 +134,7 @@ function paletteRolePools(): array
             'main'      => ['stone_bricks', 'cobblestone', 'andesite', 'stone'],
             'secondary' => ['spruce_planks', 'oak_planks', 'dark_oak_planks', 'bricks'],
             'accent'    => ['stripped_dark_oak_log', 'stripped_spruce_log', 'deepslate_bricks', 'brown_terracotta'],
-            'detail'    => ['mossy_stone_bricks', 'cracked_stone_bricks', 'chiselled_stone_bricks', 'trapdoor'],
+            'detail'    => ['mossy_stone_bricks', 'cracked_stone_bricks', 'chiseled_stone_bricks', 'trapdoor'],
             'lighting'  => ['lantern', 'campfire', 'candle'],
         ],
         'rustic' => [
@@ -161,7 +161,7 @@ function paletteRolePools(): array
         'fantasy' => [
             'main'      => ['deepslate_bricks', 'stone_bricks', 'blackstone', 'prismarine_bricks'],
             'secondary' => ['mossy_stone_bricks', 'dark_prismarine', 'mangrove_planks', 'crimson_planks'],
-            'accent'    => ['purpur_block', 'crying_obsidian', 'oxidised_copper', 'red_nether_bricks'],
+            'accent'    => ['purpur_block', 'crying_obsidian', 'oxidized_copper', 'red_nether_bricks'],
             'detail'    => ['moss_block', 'chain', 'azalea_leaves'],
             'lighting'  => ['soul_lantern', 'shroomlight', 'glowstone', 'sea_lantern'],
         ],
@@ -197,7 +197,7 @@ function paletteRolePools(): array
             'main'      => ['stone_bricks', 'deepslate_bricks', 'andesite'],
             'secondary' => ['cobblestone', 'polished_blackstone_bricks', 'stone'],
             'accent'    => ['cracked_stone_bricks', 'dark_oak_planks', 'brown_terracotta'],
-            'detail'    => ['mossy_stone_bricks', 'iron_bars', 'chain', 'chiselled_stone_bricks'],
+            'detail'    => ['mossy_stone_bricks', 'iron_bars', 'chain', 'chiseled_stone_bricks'],
             'lighting'  => ['lantern', 'campfire'],
         ],
         'desert' => [
@@ -210,7 +210,7 @@ function paletteRolePools(): array
         'ocean' => [
             'main'      => ['prismarine_bricks', 'dark_prismarine', 'calcite'],
             'secondary' => ['smooth_stone', 'light_gray_concrete', 'cyan_terracotta'],
-            'accent'    => ['oxidised_copper', 'weathered_copper', 'cyan_concrete'],
+            'accent'    => ['oxidized_copper', 'weathered_copper', 'cyan_concrete'],
             'detail'    => ['glass', 'iron_bars', 'chain'],
             'lighting'  => ['sea_lantern', 'lantern'],
         ],

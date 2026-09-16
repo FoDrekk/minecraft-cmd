@@ -19,7 +19,7 @@ function blocksAll(): array
         'stone_bricks'             => ['Stone Bricks',             'Stone', '#7a7a7a', 'medieval,castle,fantasy',   'The default castle block. Break it up with cracked and mossy.'],
         'cracked_stone_bricks'     => ['Cracked Stone Bricks',     'Stone', '#767676', 'medieval,castle,ruins',     'Smelt stone bricks. Great for ruined walls.'],
         'mossy_stone_bricks'       => ['Mossy Stone Bricks',       'Stone', '#75806f', 'medieval,fantasy,ruins',    'Mix ~20% into stone brick walls for age.'],
-        'chiselled_stone_bricks'   => ['Chiselled Stone Bricks',   'Stone', '#787878', 'medieval,castle',           'Use sparingly as a detail band.'],
+        'chiseled_stone_bricks'   => ['Chiselled Stone Bricks',   'Stone', '#787878', 'medieval,castle',           'Use sparingly as a detail band.'],
         'smooth_stone'             => ['Smooth Stone',             'Stone', '#9f9f9f', 'modern,industrial',         'Clean and bright. Slabs make excellent trim.'],
         'andesite'                 => ['Andesite',                 'Stone', '#8a8a86', 'modern,rustic',             'Neutral filler that hides seams well.'],
         'polished_andesite'        => ['Polished Andesite',        'Stone', '#a0a2a0', 'modern,industrial',         'Light grey — a good secondary next to stone bricks.'],
@@ -107,7 +107,7 @@ function blocksAll(): array
         'copper_block'             => ['Block of Copper',          'Metal', '#c06d51', 'industrial,steampunk',      'Fresh copper — oxidises over time.'],
         'exposed_copper'           => ['Exposed Copper',           'Metal', '#a2705d', 'industrial,rustic',         'First oxidation stage. Wax to lock it.'],
         'weathered_copper'         => ['Weathered Copper',         'Metal', '#6e9077', 'fantasy,industrial',        'Green-brown. The nicest copper stage for roofs.'],
-        'oxidised_copper'          => ['Oxidised Copper',          'Metal', '#53a486', 'fantasy,ocean',             'Full verdigris green. Iconic roof colour.'],
+        'oxidized_copper'          => ['Oxidised Copper',          'Metal', '#53a486', 'fantasy,ocean',             'Full verdigris green. Iconic roof colour.'],
         'cut_copper'               => ['Cut Copper',               'Metal', '#c06d51', 'industrial,modern',         'Tighter pattern than plain copper.'],
         'gold_block'               => ['Block of Gold',            'Metal', '#f5cf42', 'fantasy,nether',            'Extremely loud. Trim only.'],
         'netherite_block'          => ['Block of Netherite',       'Metal', '#443f42', 'modern,industrial',         'Dark, expensive, subtle.'],
@@ -176,20 +176,10 @@ function blocksAll(): array
         'oak_fence'                => ['Oak Fence',                 'Functional', '#b08a52', 'any',                  'Stops mobs walking onto farmland — 1.5 blocks tall.'],
         'oak_slab'                 => ['Oak Slab',                  'Functional', '#b08a52', 'any',                  'Walkable cover for a hopper line underneath.'],
         'spruce_door'              => ['Spruce Door',               'Functional', '#7a5b36', 'any',                  'Two blocks tall — the doorway itself.'],
-        'piston'                   => ['Piston',                   'Functional', '#8a6a42', 'any',                  'Pushes the block in front of it one space when powered.'],
-        'sticky_piston'            => ['Sticky Piston',             'Functional', '#5a7a3e', 'any',                  'Like a piston, but pulls the block back on retract.'],
-
-        // ── REDSTONE ──────────────────────────────
-        'redstone'                 => ['Redstone Dust',            'Redstone', '#a11f1f', 'any',                     'Carries a signal up to 15 blocks before it needs a repeater.'],
-        'redstone_torch'           => ['Redstone Torch',            'Redstone', '#c62b1f', 'any',                     'A constant power source; also inverts a signal.'],
-        'repeater'                 => ['Redstone Repeater',         'Redstone', '#8f7a6a', 'any',                     'Delays and boosts a redstone signal, one direction only.'],
-        'comparator'               => ['Redstone Comparator',       'Redstone', '#8f7a6a', 'any',                     'Compares or measures signal strength — reads container fullness.'],
 
         // ── FARMING ──────────────────────────────
         'farmland'                 => ['Farmland',                 'Farming', '#5b3a21', 'any',                     'Tilled with a hoe. Needs water within 4 blocks to stay hydrated.'],
         'wheat'                    => ['Wheat (crop)',              'Farming', '#d4c04a', 'any',                     'Grows on farmland. Harvest at the fully golden stage.'],
-        'sugar_cane'               => ['Sugar Cane',                'Farming', '#8fae4a', 'any',                     'Grows on sand, dirt, grass, moss, mud or podzol touching water. Never breaks its own base block.'],
-        'dirt'                     => ['Dirt',                      'Farming', '#7a5a3a', 'any',                     'Cheap fill, and farmland before it is tilled.'],
     ];
 }
 

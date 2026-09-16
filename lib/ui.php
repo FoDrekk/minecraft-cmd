@@ -7,8 +7,6 @@
 // no template engine, no build step.
 // ================================================
 require_once __DIR__ . '/mc.php';
-require_once __DIR__ . '/data/blocks.php';
-require_once __DIR__ . '/textures.php';
 
 function e(?string $s): string
 {
@@ -107,42 +105,6 @@ function ui_warn(string $text, string $kind = 'warn'): string
     return '<div class="' . $cls . '">' . $icon . ' ' . $text . '</div>';
 }
 
-/**
- * A validation message — the shared shape for "here is what happened".
- * $kind: ok | warn | error | info. The icon is real text, not a CSS
- * pseudo-element, so the severity is never carried by colour alone.
- * $text is escaped; $title is optional and leads the line in bold.
- */
-function ui_validation(string $kind, string $text, string $title = ''): string
-{
-    $icons = ['ok' => '✓', 'warn' => '⚠', 'error' => '✕', 'info' => 'ⓘ'];
-    $words = ['ok' => 'Valid', 'warn' => 'Warning', 'error' => 'Invalid', 'info' => 'Information'];
-    $kind  = isset($icons[$kind]) ? $kind : 'info';
-    // role=alert only for the severities a user must not miss.
-    $role  = in_array($kind, ['error', 'warn'], true) ? ' role="alert"' : '';
-
-    return '<div class="validation validation-' . e($kind) . '"' . $role . '>'
-        . '<i class="validation-icon" aria-hidden="true">' . $icons[$kind] . '</i>'
-        . '<span class="sr-only">' . e($words[$kind]) . ': </span>'
-        . '<span class="validation-body">'
-        . ($title !== '' ? '<b class="validation-title">' . e($title) . '</b>' : '')
-        . e($text) . '</span></div>';
-}
-
-/**
- * A material chip: texture, name and an optional quantity.
- * Resolves its visual through ui_material_chip(), so a texture dropped
- * into assets/textures/ appears here without touching the caller.
- */
-function ui_matchip(string $name, ?int $qty = null, ?string $blockId = null, ?string $glyph = null, bool $compact = false): string
-{
-    return '<span class="matchip' . ($compact ? ' matchip-compact' : '') . '">'
-        . ui_material_chip($blockId ?? $name, $glyph)
-        . '<span class="matchip-name">' . e($name) . '</span>'
-        . ($qty !== null ? '<span class="matchip-qty">×&nbsp;' . number_format($qty) . '</span>' : '')
-        . '</span>';
-}
-
 /** Numbered wizard rail. $steps = ['Define area', 'Choose block', …] */
 function ui_steps(array $steps, int $active = 1, string $id = ''): void
 {
@@ -155,52 +117,15 @@ function ui_steps(array $steps, int $active = 1, string $id = ''): void
     echo '</div>';
 }
 
-/**
- * Tickable materials list. State persists per key in localStorage.
- * Each item is either a plain string (existing behaviour) or
- * ['label' => ..., 'chip' => html] to show a visual tile — see
- * ui_material_chip(). The chip is decorative (aria-hidden); the
- * label text is always the source of truth for what the item is.
- */
+/** Tickable materials list. State persists per key in localStorage. */
 function ui_checklist(string $key, array $items): void
 {
     echo '<div class="checklist" data-checklist="' . e($key) . '">';
     foreach ($items as $i => $item) {
-        $id    = 'ck_' . e($key) . '_' . $i;
-        $label = is_array($item) ? $item['label'] : $item;
-        $chip  = is_array($item) ? ($item['chip'] ?? '') : '';
-        $cls   = 'check-row' . ($chip !== '' ? ' check-row-visual' : '');
-        echo '<label class="' . $cls . '"><input type="checkbox" id="' . $id . '" data-ck="' . $i . '">' . $chip . '<span>' . e($label) . '</span></label>';
+        $id = 'ck_' . e($key) . '_' . $i;
+        echo '<label class="check-row"><input type="checkbox" id="' . $id . '" data-ck="' . $i . '"><span>' . e($item) . '</span></label>';
     }
     echo '</div>';
-}
-
-/**
- * A small visual tile for one material. Resolution order matches the
- * client renderer (assets/mcvisual.js): a real texture dropped into
- * assets/textures/ wins, then the block's approximate palette colour,
- * then a plain emoji glyph the caller supplies. Never a guessed or
- * fabricated texture, and never a broken image.
- */
-function ui_material_chip(?string $blockId = null, ?string $glyph = null): string
-{
-    if ($blockId !== null) {
-        $tex = textureResolve($blockId);
-        $row = blocksAll()[$blockId] ?? null;
-        $name = $row[0] ?? $blockId;
-
-        if ($tex['src'] !== null) {
-            return '<span class="mc-chip mc-chip-tex" title="' . e($name) . '" aria-hidden="true">'
-                . '<img src="' . e($tex['src']) . '" alt="" loading="lazy" decoding="async"></span>';
-        }
-        if ($row) {
-            return '<span class="mc-chip" style="background:' . e($row[2]) . '" title="' . e($name) . '" aria-hidden="true"></span>';
-        }
-    }
-    if ($glyph !== null && $glyph !== '') {
-        return '<span class="mc-chip mc-chip-glyph" aria-hidden="true">' . $glyph . '</span>';
-    }
-    return '<span class="mc-chip mc-chip-glyph" aria-hidden="true">◻️</span>';
 }
 
 function ui_empty(string $icon, string $title, string $sub = ''): string
@@ -265,28 +190,47 @@ function ui_tile(string $href, string $icon, string $title, string $desc, string
 /** Exports the version table to JS. Called once from style.php. */
 function ui_runtime_data(): void
 {
-    // blockHex is the fallback palette the visual renderer falls back to
-    // when no texture exists — ~4KB of id=>colour, not image data, so the
-    // client can resolve any block id without a round trip. textures is
-    // whatever is actually on disk (empty until assets are supplied), so
-    // this costs nothing until it earns it.
-    $blockHex = [];
-    foreach (blocksAll() as $id => $row) $blockHex[$id] = $row[2];
-
     $data = [
-        'versions'  => MC_VERSIONS,
-        'syntax'    => MC_SYNTAX,
-        'features'  => MC_FEATURES,
-        'selectors' => MC_SELECTORS,
-        'textures'  => texturesManifest(),
-        'blockHex'  => $blockHex,
-        'current'   => mcCurrentVersion(),
+        'versions' => MC_VERSIONS,
+        'syntax'   => MC_SYNTAX,
+        'features' => MC_FEATURES,
+        'current'  => mcCurrentVersion(),
     ];
-    // JSON_HEX_* matters because this is an inline <script>: without it a
-    // string containing "</script>" would close the tag early. Most of
-    // this payload is our own constants, but the texture manifest is
-    // built from filenames on disk, so it must not be trusted to be
-    // script-safe. Slashes stay unescaped to keep paths readable.
-    $flags = JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT;
-    echo '<script>window.MC_DATA=' . json_encode($data, $flags) . ';</script>' . "\n";
+    echo '<script>window.MC_DATA=' . json_encode($data, JSON_UNESCAPED_SLASHES) . ';</script>' . "\n";
 }
+
+/**
+ * Step indicator for wizard-style flows.
+ * $steps = ['Target', 'Item', 'Enchant', 'Preview']
+ * $active = 1-indexed active step
+ */
+function ui_step_indicator(array $steps, int $active = 1, string $id = ''): void
+{
+    echo '<div class="step-indicator"' . ($id ? ' id="' . e($id) . '"' : '') . '>';
+    foreach ($steps as $i => $label) {
+        $n = $i + 1;
+        $cls = $n === $active ? 'active' : ($n < $active ? 'done' : '');
+        echo '<div class="step-item ' . $cls . '" data-step="' . $n . '">'
+            . '<span class="step-num">' . ($n < $active ? '✓' : $n) . '</span>'
+            . e($label) . '</div>';
+    }
+    echo '</div>';
+}
+
+/** Sticky action bar for bottom of page with prev/next or copy buttons. */
+function ui_sticky_bar(string $leftHtml, string $rightHtml): void
+{
+    echo '<div class="sticky-bar"><div class="sticky-bar-left">' . $leftHtml
+       . '</div><div class="sticky-bar-right">' . $rightHtml . '</div></div>';
+}
+
+/** Skeleton loading placeholder. */
+function ui_skeleton(string $type = 'card', int $count = 1): string
+{
+    $out = '';
+    for ($i = 0; $i < $count; $i++) {
+        $out .= '<div class="skeleton skeleton-' . e($type) . '"></div>';
+    }
+    return $out;
+}
+

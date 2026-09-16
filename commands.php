@@ -40,10 +40,7 @@ $TASKS = [
         'bossbar'    => ['📛', 'Boss bar',  'red'],
         'team'       => ['🏳️', 'Team',      'teal'],
     ],
-    // Not "Advanced" — these are ordinary tools once you know what they
-    // are for, and hiding them behind that label only made them look
-    // harder than they are.
-    'Logic & data' => [
+    'Advanced' => [
         'execute'    => ['⛓️', 'Execute',   'green'],
         'attribute'  => ['📈', 'Attribute', 'blue'],
         'data'       => ['🗂️', 'Data',      'gold'],
@@ -56,7 +53,7 @@ $TASKS = [
 // A task only appears once its partial exists, so the rail is never a
 // dead link — the same rule nav.php uses for sections.
 $PANEL_PARTIALS = [];
-foreach (['Text & display', 'Logic & data'] as $group) {
+foreach (['Text & display', 'Advanced'] as $group) {
     foreach (array_keys($TASKS[$group] ?? []) as $id) {
         if (is_file(__DIR__ . '/lib/panels/' . $id . '.php')) $PANEL_PARTIALS[] = $id;
         else unset($TASKS[$group][$id]);
@@ -92,19 +89,24 @@ function optionsWithMin(array $rows, string $selected = '', bool $grouped = true
 }
 
 $css = <<<CSS
-.cmd-layout { display:grid; grid-template-columns:214px 1fr; gap:18px; max-width:1240px; margin:0 auto; padding:18px 24px 56px; position:relative; z-index:1 }
-@media(max-width:900px){ .cmd-layout{grid-template-columns:1fr} }
-
-.task-rail { position:sticky; top:70px; align-self:start }
-.task-group-label { font-size:9.5px; font-family:var(--mono); letter-spacing:1.8px; text-transform:uppercase; color:var(--text3); font-weight:700; margin:14px 0 5px 8px }
-.task-group-label:first-child { margin-top:0 }
-.task-link {
-  display:flex; align-items:center; gap:9px; padding:7px 11px; margin-bottom:2px;
-  border-radius:var(--r-sm); text-decoration:none; color:var(--text3);
-  font-size:13px; border:1px solid transparent; transition:all .13s;
-}
-.task-link:hover { background:rgba(255,255,255,0.04); color:var(--text2) }
-.task-link.active { background:rgba(93,190,122,0.09); border-color:rgba(93,190,122,0.22); color:var(--green); font-weight:600 }
+.cmd-hub { display:flex; flex-direction:column; gap:40px; }
+.cmd-sec-title { font-size:20px; font-weight:800; color:var(--text); margin-bottom:16px; border-bottom:1px solid var(--border); padding-bottom:10px; letter-spacing:-.3px; }
+.cmd-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:14px; }
+.cmd-card-wrap.active { grid-column:1 / -1; background:var(--bg); border:1px solid var(--border); border-radius:var(--r-sm); padding:24px; box-shadow:var(--shadow-sm); position:relative; }
+.cmd-card-wrap.active .cmd-card { display:none; }
+.cmd-card-close { position:absolute; top:24px; right:24px; color:var(--text3); text-decoration:none; font-size:20px; line-height:1; }
+.cmd-card-close:hover { color:var(--text); }
+.cmd-card { display:flex; align-items:center; gap:14px; background:var(--card); border:1px solid var(--border2); padding:16px 20px; border-radius:var(--r-sm); text-decoration:none; color:var(--text); transition:all .2s; }
+.cmd-card:hover { border-color:var(--green); background:var(--card2); transform:translateY(-2px); box-shadow:var(--shadow-sm); }
+.cmd-card-icon { font-size:22px; }
+.cmd-card-title { font-weight:600; font-size:15px; }
+.more-cmds { margin-top:14px; border:1px solid var(--border2); border-radius:var(--r-sm); background:var(--card); }
+.more-cmds > summary { font-weight:600; cursor:pointer; color:var(--text); padding:16px 20px; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+.more-cmds > summary::-webkit-details-marker { display:none; }
+.more-cmds > summary::after { content:'▼'; font-size:12px; color:var(--text3); transition:transform .2s; }
+.more-cmds[open] > summary::after { transform:rotate(180deg); }
+.more-cmds[open] > summary { border-bottom:1px solid var(--border2); }
+.more-cmds-body { padding:20px; }
 
 .panel-head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:4px }
 .panel-title { font-size:20px; font-weight:800; letter-spacing:-.3px }
@@ -251,20 +253,138 @@ CSS;
 
 ui_head('Commands', '', $css);
 ?>
-<div class="cmd-layout">
+<div class="page-header">
+  <h1 class="page-title">⚡ Command Library</h1>
+  <div class="page-sub">Intent-driven command hub — what do you want to do?</div>
+</div>
 
-  <!-- TASK RAIL -->
-  <div class="task-rail">
-    <?php foreach ($TASKS as $group => $items): ?>
-      <div class="task-group-label"><?= e($group) ?></div>
-      <?php foreach ($items as $id => [$icon, $label, $accent]): ?>
-        <a class="task-link <?= $task === $id ? 'active' : '' ?>" href="commands.php?t=<?= e($id) ?>"><?= $icon ?> <?= e($label) ?></a>
+<div class="content cmd-hub">
+  <!-- 1. Quick Commands -->
+  <section class="cmd-section">
+    <h2 class="cmd-sec-title">Quick Commands</h2>
+    <div class="cmd-grid">
+      <a class="cmd-card" href="build.php?t=clear">
+        <div class="cmd-card-icon">🗑️</div>
+        <div class="cmd-card-title">Clear Area</div>
+      </a>
+      <?php 
+      $quick = [
+        'teleport'   => '🌀 Teleport',
+        'give'       => '📦 Give Item',
+        'kill'       => '💀 Kill',
+        'time'       => '🌤️ Time & Weather',
+        'gamemode'   => '🎮 Gamemode',
+        'effect'     => '⚗️ Effect',
+        'experience' => '⭐ Experience',
+        'difficulty' => '☠️ Difficulty',
+        'gamerule'   => '⚙️ Gamerule',
+        'summon'     => '👾 Summon',
+        'locate'     => '🧭 Locate',
+        'clear'      => '🗑️ Clear Inventory'
+      ];
+      foreach ($quick as $id => $label): 
+         $parts = explode(' ', $label, 2);
+         $icon = $parts[0]; $text = $parts[1];
+      ?>
+         <div class="cmd-card-wrap <?= $task === $id ? 'active' : '' ?>">
+           <a class="cmd-card" href="commands.php?t=<?= $id ?>">
+             <div class="cmd-card-icon"><?= e($icon) ?></div>
+             <div class="cmd-card-title"><?= e($text) ?></div>
+           </a>
+           <?php if ($task === $id): ?>
+             <a href="commands.php" class="cmd-card-close" title="Close">✕</a>
+             <div id="active-panel-slot"></div>
+           <?php endif; ?>
+         </div>
       <?php endforeach; ?>
-    <?php endforeach; ?>
-  </div>
+    </div>
 
-  <div>
-  <?php ob_start(); ?>
+    <?php 
+    $more = [
+      'tag'       => '🏷️ Tag',
+      'tellraw'   => '💬 Tellraw',
+      'particle'  => '✨ Particle',
+      'playsound' => '🔊 Playsound',
+      'bossbar'   => '📛 Bossbar',
+      'team'      => '🏳️ Team',
+      'execute'   => '⛓️ Execute',
+      'attribute' => '📈 Attribute',
+      'data'      => '🗂️ Data'
+    ];
+    $isMoreActive = isset($more[$task]);
+    ?>
+    <details class="more-cmds" <?= $isMoreActive ? 'open' : '' ?>>
+      <summary>More Commands</summary>
+      <div class="more-cmds-body cmd-grid">
+         <?php foreach ($more as $id => $label): 
+            $parts = explode(' ', $label, 2);
+            $icon = $parts[0]; $text = $parts[1];
+         ?>
+            <div class="cmd-card-wrap <?= $task === $id ? 'active' : '' ?>">
+              <a class="cmd-card" href="commands.php?t=<?= $id ?>">
+                <div class="cmd-card-icon"><?= e($icon) ?></div>
+                <div class="cmd-card-title"><?= e($text) ?></div>
+              </a>
+              <?php if ($task === $id): ?>
+                <a href="commands.php" class="cmd-card-close" title="Close">✕</a>
+                <div id="active-panel-slot"></div>
+              <?php endif; ?>
+            </div>
+         <?php endforeach; ?>
+      </div>
+    </details>
+  </section>
+
+  <!-- 2. Enhance Item -->
+  <section class="cmd-section">
+    <h2 class="cmd-sec-title">Enhance Item</h2>
+    <div class="cmd-grid">
+      <a class="cmd-card" href="enchantments.php?item=diamond_sword">
+        <div class="cmd-card-icon">⚔️</div>
+        <div class="cmd-card-title">Enhance Sword</div>
+      </a>
+      <a class="cmd-card" href="enchantments.php?item=diamond_pickaxe">
+        <div class="cmd-card-icon">⛏️</div>
+        <div class="cmd-card-title">Enhance Pickaxe</div>
+      </a>
+      <a class="cmd-card" href="enchantments.php?item=diamond_axe">
+        <div class="cmd-card-icon">🪓</div>
+        <div class="cmd-card-title">Enhance Axe</div>
+      </a>
+      <a class="cmd-card" href="enchantments.php?item=diamond_chestplate">
+        <div class="cmd-card-icon">🛡️</div>
+        <div class="cmd-card-title">Enhance Armor</div>
+      </a>
+      <a class="cmd-card" href="enchantments.php?item=bow">
+        <div class="cmd-card-icon">🏹</div>
+        <div class="cmd-card-title">Enhance Bow</div>
+      </a>
+      <a class="cmd-card" href="enchantments.php">
+        <div class="cmd-card-icon">✨</div>
+        <div class="cmd-card-title">Other Items</div>
+      </a>
+    </div>
+  </section>
+
+  <!-- 3. Builders -->
+  <section class="cmd-section">
+    <h2 class="cmd-sec-title">Builders</h2>
+    <div class="cmd-grid">
+      <a class="cmd-card" href="kit.php">
+        <div class="cmd-card-icon">🎒</div>
+        <div class="cmd-card-title">Kit Builder</div>
+      </a>
+      <a class="cmd-card" href="nbt.php">
+        <div class="cmd-card-icon">🛠️</div>
+        <div class="cmd-card-title">Custom Item Builder</div>
+      </a>
+    </div>
+  </section>
+</div>
+
+<!-- Hidden Panels container -->
+<div id="hidden-panels" style="display:none;">
+<?php ob_start(); ?>
 
   <!-- ═══════════ GIVE ═══════════ -->
   <div class="panel" data-panel="give" <?= $task !== 'give' ? 'hidden' : '' ?>>
@@ -602,8 +722,16 @@ ui_head('Commands', '', $css);
   ?>
 
   <?php echo ob_get_clean(); ?>
-  </div>
 </div>
+
+<script>
+  // Move active panel out of hidden container and into the visible slot
+  var activePanel = document.querySelector('#hidden-panels .panel:not([hidden])');
+  var slot = document.getElementById('active-panel-slot');
+  if (activePanel && slot) {
+      slot.appendChild(activePanel);
+  }
+</script>
 
 <script>
 var ITEMS = <?= json_encode(array_values(array_map(fn($i) => ['id' => $i[0], 'name' => $i[1]], $ITEMS_FLAT))) ?>;

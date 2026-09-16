@@ -57,82 +57,6 @@ require_once __DIR__ . '/lib/ui.php';
   --shadow-lg: 0 8px 40px rgba(0,0,0,0.5);
   --glow-green:0 0 24px rgba(93,190,122,0.2);
   --glow-gold: 0 0 24px rgba(232,169,74,0.2);
-
-  /* ── DESIGN TOKENS ──────────────────────────────
-     The palette above grew name-first (--green, --gold) and is used in
-     hundreds of places, so it stays exactly as it is. These add the
-     scales it never had, plus semantic names so new work can say what a
-     colour means rather than which colour it is. Both spellings are
-     valid; prefer the semantic one in anything new. */
-
-  /* Semantic surfaces */
-  --surface:      var(--card);
-  --surface-sunk: var(--bg2);
-  --surface-high: var(--card2);
-
-  /* Semantic state — what it means, not what colour it is */
-  --success: var(--green);
-  --warning: var(--gold);
-  --danger:  var(--red);
-  --info:    var(--blue);
-  --accent:  var(--green);
-
-  /* Spacing — a 4px rhythm, so gaps stop being one-off numbers */
-  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
-  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
-
-  /* Typography scale */
-  --fs-caption: 11px;
-  --fs-label:   12px;
-  --fs-body:    13.5px;
-  --fs-lead:    15px;
-  --fs-card:    16px;
-  --fs-section: 20px;
-  --fs-page:    25px;
-
-  /* Control heights, so inputs and buttons line up on one row */
-  --control-h-sm: 30px;
-  --control-h:    36px;
-  --control-h-lg: 42px;
-
-  /* Motion — one place to slow everything down or turn it off */
-  --t-fast: .12s;
-  --t:      .15s;
-  --t-slow: .25s;
-  --ease:   cubic-bezier(.4, 0, .2, 1);
-}
-
-/* ── ACCESSIBILITY FOUNDATION ──────────────────────
-   Until now the only focus style in the app was on inputs, so anyone
-   navigating by keyboard lost their place the moment they tabbed onto a
-   button, link, pill or blueprint control. One ring, on everything
-   focusable, shown only for keyboard focus so it never fires on a
-   mouse click. */
-:focus-visible {
-  outline: 2px solid var(--green);
-  outline-offset: 2px;
-  border-radius: var(--r-xs);
-}
-/* The ring above replaces the browser default rather than adding to it. */
-:focus:not(:focus-visible) { outline: none }
-
-/* Respect the OS "reduce motion" setting: keep state changes visible,
-   drop the movement. */
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: .01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: .01ms !important;
-    scroll-behavior: auto !important;
-  }
-  .btn:active { transform: none }
-}
-
-/* Text for screen readers only — for icon-only controls whose meaning
-   would otherwise be carried by the icon alone. */
-.sr-only {
-  position:absolute; width:1px; height:1px; padding:0; margin:-1px;
-  overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;
 }
 
 html { scroll-behavior:smooth }
@@ -144,6 +68,15 @@ body {
   line-height: 1.55;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+}
+
+@media(max-width:767px) {
+  body {
+    display: block;
+    padding-bottom: 60px;
+  }
 }
 
 /* ── BG ── */
@@ -156,46 +89,46 @@ body::before {
 }
 
 /* ═══════════════════════════════
-   NAV
+   NAV (SIDEBAR & BOTTOM)
 ═══════════════════════════════ */
-.topnav {
-  position: sticky; top: 0; z-index: 200;
-  height: 56px;
-  display: flex; align-items: center; gap: 2px;
-  padding: 0 20px;
-  background: rgba(14,16,20,0.92);
-  backdrop-filter: blur(24px);
-  border-bottom: 1px solid var(--border2);
-  box-shadow: 0 1px 0 rgba(255,255,255,0.03), var(--shadow-sm);
+.sidebar {
+  position: sticky; top: 0; left: 0; z-index: 200;
+  width: 220px; height: 100vh;
+  display: flex; flex-direction: column;
+  background: var(--bg2);
+  border-right: 1px solid var(--border2);
+  padding: 20px 16px;
+  transition: transform 0.3s ease;
 }
 
 .nav-logo {
   display: flex; align-items: center; gap: 8px;
-  font-family: var(--body); font-size: 15px; font-weight: 800;
+  font-family: var(--body); font-size: 18px; font-weight: 800;
   color: var(--text); letter-spacing: -.3px;
-  margin-right: 12px; white-space: nowrap; flex-shrink: 0;
+  margin-bottom: 30px; padding: 0 4px;
   text-decoration: none;
 }
 .nav-logo-icon {
-  width: 28px; height: 28px; border-radius: 7px;
+  width: 32px; height: 32px; border-radius: 8px;
   background: linear-gradient(135deg, var(--green2), var(--teal));
   display: flex; align-items: center; justify-content: center;
-  font-size: 15px; flex-shrink: 0;
+  font-size: 16px; flex-shrink: 0;
   box-shadow: 0 2px 8px rgba(93,190,122,0.3);
 }
 .nav-logo-text { color: var(--text) }
 .nav-logo-accent { color: var(--green) }
 
-.nav-divider { width:1px; height:18px; background:var(--border2); margin:0 6px; flex-shrink:0 }
+.nav-divider-hz { height:1px; background:var(--border2); margin: 12px 4px; flex-shrink:0 }
+
+.nav-links { display: flex; flex-direction: column; gap: 4px; flex: 1; overflow-y: auto; overflow-x: hidden; }
 
 .nav-link {
-  display: flex; align-items: center; gap: 5px;
-  padding: 5px 10px;
-  font-size: 13px; font-weight: 500;
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  font-size: 14px; font-weight: 500;
   color: var(--text3); border-radius: var(--r-sm);
   text-decoration: none; transition: all .15s;
   border: 1px solid transparent;
-  white-space: nowrap;
 }
 .nav-link:hover { color: var(--text2); background: rgba(255,255,255,0.04) }
 .nav-link.active {
@@ -204,31 +137,48 @@ body::before {
   border-color: rgba(93,190,122,0.18);
   font-weight: 600;
 }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
 
-.nav-right { margin-left: auto; display:flex; align-items:center; gap:8px }
-
-.nav-user {
-  display: flex; align-items: center; gap: 7px;
-  background: rgba(232,169,74,0.06);
-  border: 1px solid rgba(232,169,74,0.15);
-  border-radius: 20px; padding: 4px 12px 4px 8px;
-}
-.nav-dot {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: var(--green); box-shadow: 0 0 8px var(--green);
-  animation: pulse 2.5s ease-in-out infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(.75)} }
-.nav-uname { font-size: 12px; font-family: var(--mono); color: var(--gold); letter-spacing: .3px }
+.nav-bottom { margin-top: auto; padding-top: 16px; display:flex; flex-direction: column; gap: 8px; }
 
 .sound-toggle {
   background: transparent; border: 1px solid var(--border2);
   color: var(--text3); border-radius: var(--r-sm);
-  padding: 4px 10px; font-size: 12px; cursor: pointer;
+  padding: 6px 12px; font-size: 13px; cursor: pointer;
   font-family: var(--mono); transition: all .15s;
+  text-align: center; width: 100%;
 }
 .sound-toggle:hover { border-color: var(--border3); color: var(--text2) }
 .sound-toggle.on { border-color: rgba(93,190,122,0.3); color: var(--green) }
+
+.bottom-nav {
+  display: none;
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 300;
+  height: 60px; background: rgba(14,16,20,0.92); backdrop-filter: blur(24px);
+  border-top: 1px solid var(--border2);
+}
+
+.bottom-nav-link {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  flex: 1; text-decoration: none; color: var(--text3);
+  font-size: 10px; font-weight: 600; background: transparent; border: none; cursor: pointer;
+}
+.bottom-nav-link.active { color: var(--green); }
+.bottom-nav-icon { font-size: 18px; }
+.bottom-nav-label { font-family: var(--body); }
+
+.mobile-drawer {
+  display: none; position: fixed; bottom: 65px; right: 10px; width: 200px;
+  background: var(--card); border: 1px solid var(--border2); border-radius: var(--r-lg);
+  padding: 12px; box-shadow: var(--shadow-lg); z-index: 290;
+  flex-direction: column; gap: 4px;
+}
+.mobile-drawer.open { display: flex; }
+
+@media(max-width:767px) {
+  .sidebar { display: none; }
+  .bottom-nav { display: flex; }
+}
 
 /* ═══════════════════════════════
    PAGE HEADER
@@ -408,35 +358,6 @@ input[type=checkbox] { width:15px; height:15px; accent-color:var(--green); curso
 .btn-sm { padding:5px 11px; font-size:12px }
 .btn-lg { padding:10px 24px; font-size:14px; font-weight:700 }
 
-/* ── SEMANTIC BUTTON NAMES ─────────────────────────
-   The colour-named variants above are used throughout and stay valid.
-   These say what a button is *for*, so a primary action looks the same
-   on every page without each page picking a colour. */
-.btn-primary   { background:var(--green); color:#0a1a0f; border-color:var(--green); font-weight:700 }
-.btn-primary:hover { background:var(--green2); border-color:var(--green2); box-shadow:var(--glow-green) }
-.btn-secondary { background:var(--bg3); border-color:var(--border2); color:var(--text) }
-.btn-secondary:hover { background:var(--card2); border-color:var(--border3) }
-.btn-danger    { background:rgba(224,85,85,0.1); border-color:rgba(224,85,85,0.35); color:var(--red) }
-.btn-danger:hover { background:rgba(224,85,85,0.2) }
-
-/* Icon-only: square, and it must carry an aria-label or .sr-only text,
-   because there is no visible word to read. */
-.btn-icon {
-  width:var(--control-h); height:var(--control-h); padding:0; flex-shrink:0;
-  background:var(--bg3); border-color:var(--border2); color:var(--text2);
-}
-.btn-icon:hover { border-color:var(--border3); color:var(--text) }
-.btn-icon-sm { width:var(--control-h-sm); height:var(--control-h-sm) }
-
-/* Busy state: the button keeps its width so the row does not jump. */
-.btn[aria-busy="true"] { pointer-events:none; opacity:.7 }
-.btn[aria-busy="true"]::before {
-  content:''; width:11px; height:11px; border-radius:50%;
-  border:2px solid currentColor; border-top-color:transparent;
-  animation:btn-spin .6s linear infinite;
-}
-@keyframes btn-spin { to { transform:rotate(360deg) } }
-
 /* ═══════════════════════════════
    COMMAND OUTPUT
 ═══════════════════════════════ */
@@ -569,38 +490,12 @@ tr:hover td { background:rgba(255,255,255,0.02) }
 .nav-link-text { display:inline }
 @media(max-width:1080px){ .nav-link-text{display:none} .nav-link{padding:5px 8px;font-size:15px} }
 
-/* Below ~720px the icon-only links plus the search/version/sound
-   controls still came to about 624px against a 390px screen, so every
-   page scrolled sideways. The bar now wraps: links on the first row,
-   controls on the second, and the links scroll within their own row if
-   they ever outgrow it — the page itself never does. */
-@media(max-width:720px){
-  .topnav {
-    height:auto; flex-wrap:wrap; padding:var(--sp-2) var(--sp-3);
-    row-gap:var(--sp-2); column-gap:var(--sp-1);
-  }
-  .nav-logo { margin-right:var(--sp-2) }
-  .nav-right {
-    width:100%; margin-left:0; justify-content:space-between;
-    padding-top:var(--sp-2); border-top:1px solid var(--border);
-  }
-  .nav-search-btn { flex:1; justify-content:center }
-  /* The divider only made sense on one line. */
-  .topnav > .nav-divider { display:none }
-}
-/* On a phone the wordmark costs about 60px — enough to push the last
-   section onto a row of its own. The logo tile still links home. */
-@media(max-width:560px){
-  .nav-logo-text { display:none }
-  .nav-logo { margin-right:var(--sp-1) }
-  .nav-link { padding:5px 6px }
-}
-
 .nav-search-btn {
-  display:flex; align-items:center; gap:6px;
+  display:flex; align-items:center; justify-content: space-between; gap:6px;
   background:rgba(255,255,255,0.03); border:1px solid var(--border2);
-  color:var(--text3); padding:5px 10px; border-radius:var(--r-sm);
-  font-family:var(--body); font-size:12px; cursor:pointer; transition:all .15s;
+  color:var(--text3); padding:8px 12px; border-radius:var(--r-sm);
+  font-family:var(--body); font-size:13px; cursor:pointer; transition:all .15s;
+  width: 100%; margin-top: 10px;
 }
 .nav-search-btn:hover { border-color:var(--border3); color:var(--text2) }
 kbd {
@@ -609,9 +504,9 @@ kbd {
   border-radius:4px; color:var(--text3); background:var(--bg2);
 }
 .nav-version {
-  display:flex; align-items:center; gap:6px;
+  display:flex; align-items:center; justify-content: space-between; gap:6px;
   background:rgba(232,169,74,0.06); border:1px solid rgba(232,169,74,0.18);
-  border-radius:var(--r-sm); padding:3px 8px 3px 6px;
+  border-radius:var(--r-sm); padding:6px 12px; width: 100%;
 }
 .nav-version-tag { font-size:9px; font-family:var(--mono); letter-spacing:1px; color:var(--gold); font-weight:700 }
 .nav-version select {
@@ -693,32 +588,87 @@ kbd {
 .mc-tile-md { width:40px; height:40px } .mc-tile-md svg { width:22px; height:22px }
 .mc-tile-sm { width:28px; height:28px } .mc-tile-sm svg { width:16px; height:16px }
 
-/* ── SHARED VISUAL (MC.visual.render) ──────────────
-   One element for every Minecraft id, whatever backs it. A real texture
-   renders pixelated so a 16x16 source stays crisp instead of going
-   blurry; a stand-in renders as a flat tile that is visibly not a
-   texture. The .mc-visual-<source> class says which one you are
-   looking at. */
-.mc-visual {
-  display:inline-flex; align-items:center; justify-content:center; flex-shrink:0;
-  border-radius:var(--r-xs); overflow:hidden; vertical-align:middle;
-  background:var(--bg3); box-shadow:inset 0 0 0 1px rgba(255,255,255,0.08);
+/* Texture tiles from textures.js */
+.mc-tex { image-rendering: pixelated; image-rendering: crisp-edges }
+.mc-tile-tex { background:transparent !important; box-shadow:none !important; overflow:hidden; display:flex; align-items:center; justify-content:center }
+.mc-tex-missing { image-rendering:pixelated }
+
+/* ═══════════════════════════════
+   ITEM CARD — MC.visual.itemCard()
+═══════════════════════════════ */
+.mc-item-card {
+  display:flex; align-items:center; gap:12px; padding:10px 14px;
+  background:var(--card); border:1px solid var(--border2); border-radius:var(--r);
+  text-decoration:none; transition:all .15s; cursor:pointer;
 }
-.mc-visual img {
-  width:100%; height:100%; object-fit:contain; display:block;
-  image-rendering:pixelated; image-rendering:crisp-edges;
+.mc-item-card:hover { border-color:var(--card-accent, var(--border3)); background:var(--card2); transform:translateY(-1px) }
+.mc-card-visual { flex-shrink:0 }
+.mc-card-info { min-width:0; flex:1 }
+.mc-card-name { font-size:13px; font-weight:700; color:var(--text); margin-bottom:2px }
+.mc-card-props { display:flex; flex-wrap:wrap; gap:6px }
+.mc-card-prop { font-size:10.5px; font-family:var(--mono); color:var(--text3) }
+
+/* ═══════════════════════════════
+   STICKY ACTION BAR
+═══════════════════════════════ */
+.sticky-bar {
+  position:sticky; bottom:0; z-index:50;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+  padding:12px 16px;
+  background:rgba(14,16,20,0.95); backdrop-filter:blur(16px);
+  border-top:1px solid var(--border2); margin-top:20px;
+  border-radius:var(--r-lg) var(--r-lg) 0 0;
+  box-shadow:0 -4px 20px rgba(0,0,0,0.4);
 }
-.mc-visual svg { width:60%; height:60%; filter:drop-shadow(0 1px 1px rgba(0,0,0,0.4)) }
-/* A real texture supplies its own art, so no inner ring fighting it. */
-.mc-visual-asset, .mc-visual-alias { background:transparent; box-shadow:none }
-/* Nothing resolved: a quiet placeholder, never a broken-image icon. */
-.mc-visual-fallback {
-  background:repeating-linear-gradient(45deg, var(--bg3) 0 4px, var(--bg2) 4px 8px);
+.sticky-bar-left { display:flex; align-items:center; gap:10px }
+.sticky-bar-right { display:flex; align-items:center; gap:8px }
+
+/* ═══════════════════════════════
+   STEP INDICATOR (wizard rail)
+═══════════════════════════════ */
+.step-indicator {
+  display:flex; align-items:center; gap:0; padding:4px 0; overflow-x:auto;
 }
-.mc-visual-sm   { width:24px; height:24px }
-.mc-visual-md   { width:36px; height:36px }
-.mc-visual-lg   { width:56px; height:56px; border-radius:var(--r-sm) }
-.mc-visual-cell { width:100%; height:100%; border-radius:0 }
+.step-item {
+  display:flex; align-items:center; gap:8px; padding:8px 14px;
+  font-size:12px; font-weight:600; color:var(--text3);
+  white-space:nowrap; transition:all .15s; cursor:pointer; position:relative;
+}
+.step-item::after {
+  content:''; position:absolute; right:0; top:50%; transform:translateY(-50%);
+  width:20px; height:1px; background:var(--border2);
+}
+.step-item:last-child::after { display:none }
+.step-num {
+  width:24px; height:24px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:11px; font-weight:700; font-family:var(--mono);
+  background:var(--bg3); border:1px solid var(--border2); color:var(--text3);
+  transition:all .15s; flex-shrink:0;
+}
+.step-item.active { color:var(--green) }
+.step-item.active .step-num { background:rgba(93,190,122,0.15); border-color:var(--green); color:var(--green) }
+.step-item.done { color:var(--text2) }
+.step-item.done .step-num { background:var(--green); border-color:var(--green); color:#0a1a0f }
+.step-item.done::after { background:var(--green) }
+
+/* ═══════════════════════════════
+   SKELETON / LOADING STATES
+═══════════════════════════════ */
+.skeleton {
+  background:var(--bg3); border-radius:var(--r-sm);
+  position:relative; overflow:hidden;
+}
+.skeleton::after {
+  content:''; position:absolute; inset:0;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent);
+  animation:skeleton-shimmer 1.5s infinite;
+}
+@keyframes skeleton-shimmer { from{transform:translateX(-100%)} to{transform:translateX(100%)} }
+.skeleton-text { height:14px; border-radius:4px; margin-bottom:8px }
+.skeleton-text:last-child { width:60% }
+.skeleton-tile { width:48px; height:48px; border-radius:var(--r) }
+.skeleton-card { height:80px; border-radius:var(--r) }
 
 /* ═══════════════════════════════
    BLUEPRINT VIEWER — assets/blueprint.js, shared by Build Ideas + Farms
@@ -729,21 +679,9 @@ kbd {
 .bp-layer-btn span { display:block; font-size:9.5px; color:var(--text3); font-weight:400 }
 .bp-layer-btn:hover { border-color:var(--border3); color:var(--text2) }
 .bp-layer-btn.active { background:rgba(93,190,122,0.1); border-color:rgba(93,190,122,0.35); color:var(--green) }
-.bp-toolbar-right { display:flex; align-items:center; gap:10px }
-.bp-facing { font-size:11px; font-family:var(--mono); color:var(--gold); display:flex; align-items:center; gap:5px; white-space:nowrap }
-.bp-facing-arrow { font-size:15px; line-height:1 }
 .bp-controls { display:flex; gap:4px }
 .bp-btn { width:28px; height:28px; background:var(--bg3); border:1px solid var(--border2); color:var(--text2); border-radius:var(--r-sm); cursor:pointer; font-size:14px; line-height:1 }
 .bp-btn:hover { border-color:var(--border3) }
-.bp-btn:disabled { opacity:.35; cursor:default }
-.bp-btn:disabled:hover { border-color:var(--border2) }
-
-.bp-stepnav { background:var(--bg2); border:1px solid var(--border2); border-radius:var(--r); padding:11px 13px; margin-bottom:10px }
-.bp-stepnav-head { display:flex; align-items:center; gap:10px }
-.bp-stepnav-label { flex:1; text-align:center; font-size:11px; font-family:var(--mono); letter-spacing:1px; text-transform:uppercase; color:var(--green); font-weight:700 }
-.bp-stepnav-bar { height:4px; border-radius:2px; background:var(--bg3); margin-top:9px; overflow:hidden }
-.bp-stepnav-fill { height:100%; background:var(--green); transition:width .2s }
-.bp-stepnav-text { font-size:12.5px; color:var(--text2); line-height:1.55; margin-top:8px }
 .bp-body { display:grid; grid-template-columns:1fr 220px; gap:14px }
 @media(max-width:820px){ .bp-body{ grid-template-columns:1fr } }
 .bp-viewport { position:relative; overflow:auto; max-height:420px; background:var(--bg2); border:1px solid var(--border); border-radius:var(--r); padding:16px; cursor:grab; user-select:none }
@@ -751,11 +689,7 @@ kbd {
 .bp-compass { position:sticky; top:0; left:0; width:26px; font-family:var(--mono); font-size:11px; color:var(--text3); text-align:center; margin-bottom:6px }
 .bp-compass span { display:block; font-size:13px }
 .bp-grid { display:grid; gap:1px; background:rgba(255,255,255,0.04); width:max-content }
-/* A cell is either a flat colour or a dropped-in texture; sizing rules
-   are the same either way so highlight/dim keep working untouched. */
-.bp-cell { box-shadow:inset 0 0 0 1px rgba(0,0,0,0.25);
-  background-size:100% 100%; background-repeat:no-repeat; image-rendering:pixelated }
-.bp-legend-row i, .bp-mat-row i { background-size:100% 100%; background-repeat:no-repeat; image-rendering:pixelated }
+.bp-cell { box-shadow:inset 0 0 0 1px rgba(0,0,0,0.25) }
 .bp-cell-air { background:transparent; box-shadow:none }
 .bp-cell-hl { outline:2px solid var(--gold); outline-offset:-2px; z-index:1; position:relative }
 .bp-cell-dim { opacity:.25 }
@@ -841,15 +775,7 @@ kbd {
 }
 .check-row:hover { background:rgba(255,255,255,0.03) }
 .check-row input { width:15px; height:15px; accent-color:var(--green); cursor:pointer; flex-shrink:0 }
-.check-row input:checked ~ span { color:var(--text3); text-decoration:line-through }
-.check-row-visual { padding:5px 9px }
-
-.mc-chip { width:24px; height:24px; border-radius:6px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
-  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.12); font-size:13px; line-height:1 }
-.mc-chip-glyph { background:var(--bg3) }
-/* A real texture brings its own art — no tinted box behind it. */
-.mc-chip-tex { background:transparent; box-shadow:none; overflow:hidden }
-.mc-chip-tex img { width:100%; height:100%; object-fit:contain; image-rendering:pixelated }
+.check-row input:checked + span { color:var(--text3); text-decoration:line-through }
 
 /* ═══════════════════════════════
    EMPTY STATE
@@ -882,90 +808,6 @@ kbd {
 .stat { flex:1; min-width:96px }
 .stat-val { font-size:22px; font-weight:800; font-family:var(--mono); color:var(--green); line-height:1.2 }
 .stat-lbl { font-size:10px; font-family:var(--mono); letter-spacing:1.2px; text-transform:uppercase; color:var(--text3); margin-top:2px }
-
-/* ═══════════════════════════════
-   SHARED COMPONENTS
-   The pieces every page should reuse rather than restyle. Built on the
-   tokens above so a button, chip or validation message looks the same
-   in Command Library as it does in Build.
-═══════════════════════════════ */
-
-/* ── VALIDATION ────────────────────────────────────
-   One shape for "here is what happened", in four severities. The icon
-   is part of the markup, not a ::before, so the meaning survives being
-   read aloud or copied — never colour alone. */
-.validation {
-  display:flex; align-items:flex-start; gap:var(--sp-2);
-  padding:var(--sp-2) var(--sp-3); border-radius:var(--r-sm);
-  font-size:var(--fs-label); line-height:1.6;
-  border:1px solid var(--border2); background:var(--bg2); color:var(--text2);
-}
-.validation-icon { flex-shrink:0; font-style:normal; line-height:1.5 }
-.validation-body { min-width:0 }
-.validation-title { font-weight:700; display:block }
-.validation-ok    { border-color:rgba(93,190,122,0.3);  background:rgba(93,190,122,0.06);  color:var(--success) }
-.validation-warn  { border-color:rgba(232,169,74,0.3);  background:rgba(232,169,74,0.06);  color:var(--warning) }
-.validation-error { border-color:rgba(224,85,85,0.32);  background:rgba(224,85,85,0.06);   color:var(--danger) }
-.validation-info  { border-color:rgba(91,156,246,0.3);  background:rgba(91,156,246,0.06);  color:var(--info) }
-
-/* ── STEP INDICATOR ────────────────────────────────
-   Extends the existing .step with the states a guided flow needs.
-   .steps-compact is the mobile form: numbers only, no labels. */
-.step[aria-disabled="true"] { opacity:.45; cursor:not-allowed }
-.step.upcoming { color:var(--text3) }
-.step.error { border-color:rgba(224,85,85,0.4); color:var(--danger); background:rgba(224,85,85,0.06) }
-.step.error .step-n { background:var(--danger); color:#fff }
-.steps-compact .step { padding:6px; gap:0 }
-.steps-compact .step-label { display:none }
-@media(max-width:560px) {
-  .steps .step { padding:6px 9px; font-size:11.5px }
-}
-
-/* ── MATERIAL CHIP ─────────────────────────────────
-   [texture] Name × 24 — used by Build, Farms, Blueprint and the
-   material calculator, so it is defined once here. */
-.matchip {
-  display:inline-flex; align-items:center; gap:var(--sp-2);
-  padding:var(--sp-1) var(--sp-2); border-radius:var(--r-sm);
-  border:1px solid var(--border); background:var(--bg2);
-  font-size:var(--fs-label); color:var(--text2); max-width:100%;
-}
-.matchip:hover { border-color:var(--border3) }
-.matchip[aria-pressed="true"], .matchip.selected {
-  border-color:rgba(93,190,122,0.4); background:rgba(93,190,122,0.07); color:var(--text);
-}
-.matchip-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap }
-.matchip-qty { font-family:var(--mono); color:var(--text3); flex-shrink:0 }
-.matchip-compact { padding:2px var(--sp-1); gap:var(--sp-1); font-size:var(--fs-caption) }
-
-/* ── SKELETON ──────────────────────────────────────
-   Holds the space the real content will take, so nothing jumps when it
-   arrives. Animation drops out under reduce-motion via the global rule. */
-.skeleton {
-  background:linear-gradient(90deg, var(--bg2) 25%, var(--bg3) 37%, var(--bg2) 63%);
-  background-size:400% 100%; animation:skeleton-sweep 1.4s ease infinite;
-  border-radius:var(--r-xs);
-}
-@keyframes skeleton-sweep { 0% { background-position:100% 50% } 100% { background-position:0 50% } }
-.skeleton-line { height:12px; margin-bottom:var(--sp-2) }
-.skeleton-line:last-child { width:60%; margin-bottom:0 }
-
-/* ── RESPONSIVE PRIMITIVES ─────────────────────────
-   Shared components must survive a phone. Nothing here may introduce a
-   horizontal scrollbar on the page itself — long command text scrolls
-   inside its own box instead. */
-@media(max-width:560px) {
-  .cmdout-body { word-break:break-word; overflow-x:auto }
-  .cmdout-actions .btn { flex:1 1 auto; justify-content:center }
-  .matchip { max-width:100% }
-  .btn { min-height:32px }
-}
-/* A sticky action bar for long mobile forms. */
-.sticky-actions {
-  position:sticky; bottom:0; z-index:5;
-  background:linear-gradient(to top, var(--bg) 70%, transparent);
-  padding:var(--sp-3) 0; display:flex; gap:var(--sp-2);
-}
 
 </style>
 
@@ -1026,6 +868,7 @@ function copyText(txt){
 
 <?php ui_runtime_data(); ?>
 <script src="assets/mccmd.js"></script>
+<script src="assets/textures.js"></script>
 <script src="assets/mcvisual.js"></script>
 <script src="assets/blueprint.js"></script>
 <script src="assets/search.js"></script>

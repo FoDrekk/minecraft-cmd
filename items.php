@@ -1,91 +1,42 @@
 <?php
-$ITEMS = [
-  'Weapons' => [
-    ['wooden_sword','Wooden Sword'],['stone_sword','Stone Sword'],
-    ['iron_sword','Iron Sword'],['golden_sword','Golden Sword'],
-    ['diamond_sword','Diamond Sword'],['netherite_sword','Netherite Sword'],
-    ['bow','Bow'],['crossbow','Crossbow'],['trident','Trident'],['mace','Mace'],
-    ['arrow','Arrow'],['spectral_arrow','Spectral Arrow'],
-  ],
-  'Tools' => [
-    ['wooden_pickaxe','Wooden Pickaxe'],['stone_pickaxe','Stone Pickaxe'],
-    ['iron_pickaxe','Iron Pickaxe'],['golden_pickaxe','Golden Pickaxe'],
-    ['diamond_pickaxe','Diamond Pickaxe'],['netherite_pickaxe','Netherite Pickaxe'],
-    ['wooden_axe','Wooden Axe'],['stone_axe','Stone Axe'],
-    ['iron_axe','Iron Axe'],['golden_axe','Golden Axe'],
-    ['diamond_axe','Diamond Axe'],['netherite_axe','Netherite Axe'],
-    ['wooden_shovel','Wooden Shovel'],['stone_shovel','Stone Shovel'],
-    ['iron_shovel','Iron Shovel'],['diamond_shovel','Diamond Shovel'],['netherite_shovel','Netherite Shovel'],
-    ['wooden_hoe','Wooden Hoe'],['iron_hoe','Iron Hoe'],['diamond_hoe','Diamond Hoe'],['netherite_hoe','Netherite Hoe'],
-    ['fishing_rod','Fishing Rod'],['flint_and_steel','Flint and Steel'],
-    ['shears','Shears'],['compass','Compass'],['clock','Clock'],
-    ['map','Map'],['spyglass','Spyglass'],['lead','Lead'],['name_tag','Name Tag'],['shield','Shield'],
-  ],
-  'Armour' => [
-    ['leather_helmet','Leather Helmet'],['leather_chestplate','Leather Chestplate'],
-    ['leather_leggings','Leather Leggings'],['leather_boots','Leather Boots'],
-    ['chainmail_helmet','Chainmail Helmet'],['chainmail_chestplate','Chainmail Chestplate'],
-    ['chainmail_leggings','Chainmail Leggings'],['chainmail_boots','Chainmail Boots'],
-    ['iron_helmet','Iron Helmet'],['iron_chestplate','Iron Chestplate'],
-    ['iron_leggings','Iron Leggings'],['iron_boots','Iron Boots'],
-    ['golden_helmet','Golden Helmet'],['golden_chestplate','Golden Chestplate'],
-    ['golden_leggings','Golden Leggings'],['golden_boots','Golden Boots'],
-    ['diamond_helmet','Diamond Helmet'],['diamond_chestplate','Diamond Chestplate'],
-    ['diamond_leggings','Diamond Leggings'],['diamond_boots','Diamond Boots'],
-    ['netherite_helmet','Netherite Helmet'],['netherite_chestplate','Netherite Chestplate'],
-    ['netherite_leggings','Netherite Leggings'],['netherite_boots','Netherite Boots'],
-    ['elytra','Elytra'],['turtle_helmet','Turtle Helmet'],
-  ],
-  'Food' => [
-    ['apple','Apple'],['golden_apple','Golden Apple'],['enchanted_golden_apple','Enchanted Golden Apple'],
-    ['bread','Bread'],['carrot','Carrot'],['golden_carrot','Golden Carrot'],
-    ['potato','Potato'],['baked_potato','Baked Potato'],['pumpkin_pie','Pumpkin Pie'],
-    ['cookie','Cookie'],['cake','Cake'],['cooked_beef','Steak'],['cooked_porkchop','Cooked Porkchop'],
-    ['cooked_chicken','Cooked Chicken'],['cooked_mutton','Cooked Mutton'],
-    ['cooked_cod','Cooked Cod'],['cooked_salmon','Cooked Salmon'],
-    ['mushroom_stew','Mushroom Stew'],['rabbit_stew','Rabbit Stew'],
-    ['beetroot_soup','Beetroot Soup'],['honey_bottle','Honey Bottle'],['dried_kelp','Dried Kelp'],
-  ],
-  'Materials' => [
-    ['diamond','Diamond'],['emerald','Emerald'],['netherite_ingot','Netherite Ingot'],
-    ['gold_ingot','Gold Ingot'],['iron_ingot','Iron Ingot'],['copper_ingot','Copper Ingot'],
-    ['redstone','Redstone'],['lapis_lazuli','Lapis Lazuli'],['quartz','Nether Quartz'],
-    ['coal','Coal'],['amethyst_shard','Amethyst Shard'],['echo_shard','Echo Shard'],
-    ['nether_star','Nether Star'],['dragon_egg','Dragon Egg'],['end_crystal','End Crystal'],
-    ['beacon','Beacon'],['conduit','Conduit'],['totem_of_undying','Totem of Undying'],
-  ],
-];
+// ================================================
+// items.php — legacy globals, now DERIVED
+// ------------------------------------------------
+// The canonical item data lives in lib/data/items.php (itemsRegistry())
+// and the canonical enchantment applicability table lives in
+// lib/data/enchantments.php (enchantApplicability()).
+//
+// This file used to hold all of it as hand-written arrays, and several
+// pages still `require_once` it and read the globals directly. Rather
+// than break those callers, the globals are now generated from the
+// registries above, in the exact shapes the pages already expect:
+//
+//   $ITEMS       category => [[id, name], …]
+//   $ITEMS_FLAT  [[id, name], …]               (the same rows, flattened)
+//   $ENCHANTS    slot => [[enchant, max], …]
+//
+// Because they are derived, they can no longer drift from the registry:
+// adding an item in one place updates the pickers, /give, the Item
+// Builder and Knowledge together.
+//
+// New code should call itemsList() / itemsByCategory() / itemName() /
+// enchantApplicability() instead of reading these globals.
+// ================================================
+require_once __DIR__ . '/lib/data/items.php';
+require_once __DIR__ . '/lib/data/enchantments.php';
 
-// Flat list for JS
-$ITEMS_FLAT = [];
-foreach($ITEMS as $cat => $items) {
-  foreach($items as $item) {
-    $ITEMS_FLAT[] = $item;
-  }
+$ITEMS = [];
+foreach (itemsByCategory() as $cat => $rows) {
+    foreach ($rows as $row) {
+        $ITEMS[$cat][] = [$row['id'], $row['name']];
+    }
 }
 
-// Enchants per slot
-$ENCHANTS = [
-  'Sword'   => [['sharpness',5],['smite',5],['bane_of_arthropods',5],['knockback',2],['fire_aspect',2],['looting',3],['sweeping',3],['unbreaking',3],['mending',1]],
-  'Pickaxe' => [['efficiency',5],['silk_touch',1],['fortune',3],['unbreaking',3],['mending',1]],
-  'Axe'     => [['sharpness',5],['smite',5],['bane_of_arthropods',5],['efficiency',5],['silk_touch',1],['fortune',3],['unbreaking',3],['mending',1]],
-  'Shovel'  => [['efficiency',5],['silk_touch',1],['fortune',3],['unbreaking',3],['mending',1]],
-  'Bow'     => [['power',5],['punch',2],['flame',1],['infinity',1],['unbreaking',3],['mending',1]],
-  'Crossbow'=> [['multishot',1],['piercing',4],['quick_charge',3],['unbreaking',3],['mending',1]],
-  'Helmet'  => [['protection',4],['fire_protection',4],['blast_protection',4],['projectile_protection',4],['respiration',3],['aqua_affinity',1],['thorns',3],['unbreaking',3],['mending',1]],
-  'Chestplate'=>[['protection',4],['fire_protection',4],['blast_protection',4],['projectile_protection',4],['thorns',3],['unbreaking',3],['mending',1]],
-  'Leggings'=> [['protection',4],['fire_protection',4],['blast_protection',4],['projectile_protection',4],['thorns',3],['swift_sneak',3],['unbreaking',3],['mending',1]],
-  'Boots'   => [['protection',4],['fire_protection',4],['feather_falling',4],['depth_strider',3],['frost_walker',2],['soul_speed',3],['thorns',3],['unbreaking',3],['mending',1]],
-  'Trident' => [['channeling',1],['loyalty',3],['impaling',5],['riptide',3],['unbreaking',3],['mending',1]],
-  'Hoe'        => [['efficiency',5],['unbreaking',3],['mending',1]],
-  'Fishing Rod'=> [['luck_of_the_sea',3],['lure',3],['unbreaking',3],['mending',1]],
-  'Shield'     => [['unbreaking',3],['mending',1]],
-  'Elytra'     => [['unbreaking',3],['mending',1]],
-  // Mace was added in Java 1.21 ("Tricky Trials"). Density, Breach and Wind
-  // Burst are mace-exclusive; Smite/Bane of Arthropods apply but Sharpness
-  // does not. See lib/data/enchantments.php for the version gate and the
-  // conflict group (density/breach/smite/bane_of_arthropods are mutually
-  // exclusive on a mace).
-  'Mace'       => [['density',5],['breach',4],['wind_burst',3],['smite',5],['bane_of_arthropods',5],['fire_aspect',2],['unbreaking',3],['mending',1]],
-];
-?>
+$ITEMS_FLAT = [];
+foreach ($ITEMS as $list) {
+    foreach ($list as $item) {
+        $ITEMS_FLAT[] = $item;
+    }
+}
+
+$ENCHANTS = enchantApplicability();
