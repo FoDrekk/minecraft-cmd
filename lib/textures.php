@@ -29,6 +29,8 @@
 // this file never invents a replacement image.
 // ================================================
 
+require_once __DIR__ . '/mc.php';
+
 const MC_TEXTURE_KINDS = ['item', 'block'];
 const MC_TEXTURE_EXTS  = ['png', 'webp'];
 
@@ -102,4 +104,94 @@ function texturesManifestAll(): array
     $out = [];
     foreach (MC_TEXTURE_KINDS as $kind) $out[$kind] = texturesManifest($kind);
     return $out;
+}
+
+/** Every kind's modern-variant manifest — see texturesManifestModern(). */
+function texturesManifestModernAll(): array
+{
+    $out = [];
+    foreach (MC_TEXTURE_KINDS as $kind) $out[$kind] = texturesManifestModern($kind);
+    return $out;
+}
+
+// ── VERSION-AWARE ASSET STATUS ───────────────────
+// Two separate, small pieces of version-awareness, kept apart because
+// they answer different questions:
+//
+//  1. Does this id exist at all in the selected version? That's game
+//     data, not a texture concern — it already lives on the block/item
+//     registries (blocksAll()'s 6th tuple element, itemsRegistry()'s
+//     'min' key), the same 'min' => <rank> convention used throughout
+//     the app. This file stays registry-agnostic (no require of
+//     lib/data/*) and just accepts the caller's already-known minimum
+//     rank, so it works for any future kind without new coupling.
+//
+//  2. Given the id exists, is there a *different* authentic texture for
+//     the newer art era? A handful of vanilla textures were redrawn in
+//     the 1.20.5+ era (see MC_FEATURES['modern_textures']) — for those,
+//     assets/textures/<kind>/_modern/<id>.png overrides the base file.
+//     This is opt-in per id: absent a _modern file, the base texture is
+//     used for every version, which is correct for the ~95% of ids
+//     whose art hasn't changed.
+
+/**
+ * Every texture present in a kind's modern-variant folder — same shape
+ * and caching as texturesManifest(), scanned separately since it's a
+ * different (and much smaller) directory.
+ */
+function texturesManifestModern(string $kind): array
+{
+    static $manifests = [];
+    if (isset($manifests[$kind])) return $manifests[$kind];
+    if (!in_array($kind, MC_TEXTURE_KINDS, true)) return $manifests[$kind] = [];
+
+    $manifest = [];
+    $relDir = 'assets/textures/' . $kind . '/_modern';
+    $dir = dirname(__DIR__) . '/' . $relDir;
+    if (!is_dir($dir)) return $manifests[$kind] = $manifest;
+
+    foreach (scandir($dir) ?: [] as $file) {
+        if (!preg_match('/^[A-Za-z0-9_.\-]+$/', $file)) continue;
+        $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+        if (!in_array($ext, MC_TEXTURE_EXTS, true)) continue;
+        $id = textureNormaliseId(pathinfo($file, PATHINFO_FILENAME));
+        if ($id === '' || isset($manifest[$id])) continue;
+        $manifest[$id] = $relDir . '/' . $file;
+    }
+    ksort($manifest);
+    return $manifests[$kind] = $manifest;
+}
+
+/**
+ * Resolve one id to a texture path, preferring the modern-era variant
+ * when the selected version has 'modern_textures' and one exists.
+ * $versionId is passed through to mcHas() — null means "the visitor's
+ * current version" (mcCurrentVersion()'s default).
+ */
+function textureResolveForVersion(string $id, string $kind = 'item', ?string $versionId = null): ?string
+{
+    $norm = textureNormaliseId($id);
+    if (mcHas($versionId, 'modern_textures')) {
+        $modern = texturesManifestModern($kind)[$norm] ?? null;
+        if ($modern !== null) return $modern;
+    }
+    return textureResolve($id, $kind);
+}
+
+/**
+ * The full FOUND / MISSING / UNAVAILABLE_FOR_VERSION answer for one id.
+ * $minRank is the id's own 'min' rank from its registry (0 if it has
+ * none, i.e. always available) — the caller supplies it rather than
+ * this file reaching into blocksAll()/itemsRegistry() itself, so a
+ * future 'entity' or 'mob_effect' kind needs no change here.
+ */
+function textureStatus(string $id, string $kind, int $minRank = 0, ?string $versionId = null): array
+{
+    if ($minRank > mcVersion($versionId)['rank']) {
+        return ['status' => 'unavailable_for_version', 'path' => null];
+    }
+    $path = textureResolveForVersion($id, $kind, $versionId);
+    return $path !== null
+        ? ['status' => 'found', 'path' => $path]
+        : ['status' => 'missing', 'path' => null];
 }

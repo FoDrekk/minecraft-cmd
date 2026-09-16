@@ -17,7 +17,13 @@
     // Which ids have a real Minecraft texture on disk right now — see
     // lib/textures.php. Empty objects keep this safe on a page that
     // loads the runtime without the export.
-    data: { textures: D.textures || { item: {}, block: {} } },
+    data: {
+      textures: D.textures || { item: {}, block: {} },
+      // A small number of ids have a different, also-authentic texture
+      // for the 1.20.5+ art era — see lib/textures.php. Absent an
+      // override, textureSrc() always returns the base texture.
+      texturesModern: D.texturesModern || { item: {}, block: {} }
+    },
     _cur: D.current
   };
 
@@ -357,13 +363,37 @@
   }
 
   /** The real texture's web path for this id, or null if none exists.
-      kind is 'item' or 'block' — the game keeps those two separate. */
+      kind is 'item' or 'block' — the game keeps those two separate.
+      Prefers the 1.20.5+ variant, for the few ids that have one, when
+      the currently selected version is new enough for it. */
   MC.textureSrc = function (id, kind) {
-    var map = (MC.data.textures[kind === 'block' ? 'block' : 'item']) || {};
-    return map[textureNormaliseId(id)] || null;
+    var k = kind === 'block' ? 'block' : 'item';
+    var norm = textureNormaliseId(id);
+    if (MC.has('modern_textures')) {
+      var modern = (MC.data.texturesModern[k] || {})[norm];
+      if (modern) return modern;
+    }
+    var map = MC.data.textures[k] || {};
+    return map[norm] || null;
   };
 
   MC.hasTexture = function (id, kind) { return MC.textureSrc(id, kind) !== null; };
+
+  /**
+   * FOUND / MISSING / UNAVAILABLE_FOR_VERSION for one id, given its
+   * registry 'min' rank (0 if it has none). This is the id's *existence*
+   * in the selected version, not just whether a texture file happens to
+   * be on disk — a locked id can still resolve a texture (so a picker
+   * can show what it looks like), status is what a caller uses to
+   * decide whether to offer it.
+   */
+  MC.textureStatus = function (id, kind, minRank) {
+    if ((minRank || 0) > (MC.v().rank || 0)) {
+      return { status: 'unavailable_for_version', path: null };
+    }
+    var path = MC.textureSrc(id, kind);
+    return path ? { status: 'found', path: path } : { status: 'missing', path: null };
+  };
 
   document.addEventListener('click', function (e) {
     var btn = e.target.closest('[data-act]');

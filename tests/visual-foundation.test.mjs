@@ -30,6 +30,7 @@ let pass = 0, fail = 0;
 const failures = [];
 const check = (n, a, e) => (a === e ? pass++ : (fail++, failures.push(`${n}\n    expected: ${e}\n    actual:   ${a}`)));
 const has = (n, h, s) => (String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    expected to contain: ${s}\n    actual: ${h}`)));
+const hasNot = (n, h, s) => (!String(h).includes(s) ? pass++ : (fail++, failures.push(`${n}\n    should NOT contain: ${s}`)));
 
 // A 1x1 PNG. Deliberately not a Minecraft texture — it only has to be a
 // real image file so the pipeline has something genuine to resolve.
@@ -60,6 +61,7 @@ const page = await browser.newPage();
 page.setDefaultTimeout(15000);
 await page.route(/fonts\.(googleapis|gstatic)\.com/, r => r.abort());
 page.on('pageerror', e => { fail++; failures.push('PAGE ERROR: ' + e.message); });
+const setVersion = async v => { await page.evaluate(x => MC.setVersion(x), v); await page.waitForTimeout(80); };
 
 try {
   // ── SUPPLIED TEXTURES: the real, permanent asset set ────────────
@@ -85,6 +87,9 @@ try {
     cobblestone: MC.textureSrc('cobblestone', 'block'),
     oakPlanks: MC.textureSrc('oak_planks', 'block'),
     grassBlock: MC.textureSrc('grass_block', 'block'),
+    glass: MC.textureSrc('glass', 'block'),
+    deepslate: MC.textureSrc('deepslate', 'block'),
+    diamondPickaxeStatus: MC.textureStatus('diamond_pickaxe', 'item', 0),
     equipSword: MC.visual.equipmentTile('Sword', 'diamond_sword', 'lg'),
     equipBow: MC.visual.equipmentTile('Bow', 'bow', 'lg'),
     cardApple: MC.visual.itemCard('apple', 'Apple', null),
@@ -103,6 +108,9 @@ try {
   check('Cobblestone resolves to its real supplied block texture', supplied.cobblestone, 'assets/textures/block/cobblestone.png');
   check('Oak Planks resolves to its real supplied block texture', supplied.oakPlanks, 'assets/textures/block/oak_planks.png');
   check('Grass Block resolves via its top-face texture (block ids can need a face alias)', supplied.grassBlock, 'assets/textures/block/grass_block.png');
+  check('Glass resolves to its real supplied block texture', supplied.glass, 'assets/textures/block/glass.png');
+  check('Deepslate resolves to its real supplied block texture', supplied.deepslate, 'assets/textures/block/deepslate.png');
+  check('textureStatus reports found for an always-available item with no min rank', supplied.diamondPickaxeStatus.status, 'found');
   has('the equipment tile renders Diamond Sword as a real <img>', supplied.equipSword, '<img class="mc-tex-img" src="assets/textures/item/diamond_sword.png"');
   has('...and the Bow too', supplied.equipBow, 'src="assets/textures/item/bow.png"');
   has('the item card renders the real Apple texture', supplied.cardApple, 'assets/textures/item/apple.png');
@@ -114,32 +122,82 @@ try {
   has('...as an image', swordRes.headers()['content-type'], 'image');
 
   // ── THE HONEST FALLBACK CHAIN ────────────────────────────────────
-  // mace: predates the 1.21 update, genuinely absent from a 1.20.1 set.
   // shield: real Minecraft renders it as a 3D banner-overlay model, not
-  // a flat inventory icon, so no simple square texture exists for it.
+  // a flat inventory icon, so no simple square texture exists for it —
+  // the one enchantable item with genuinely no supplied texture.
   // resin_bricks: a post-1.20.1 (Creaking-era) block — a block-side
-  // example of the same "correctly absent from this version" case.
+  // example of the same "correctly absent from this archive" case.
   const bare = await page.evaluate(() => ({
-    hasMace: MC.hasTexture('mace', 'item'),
-    srcNone: MC.textureSrc('mace', 'item'),
     hasShield: MC.hasTexture('shield', 'item'),
+    srcNone: MC.textureSrc('shield', 'item'),
     hasResinBricks: MC.hasTexture('resin_bricks', 'block'),
-    equip: MC.visual.equipmentTile('Mace', 'mace', 'lg'),
+    equip: MC.visual.equipmentTile('Shield', 'shield', 'lg'),
     block: MC.visual.blockTile('#7CBD6B', 'md', 'Resin Bricks', 'resin_bricks'),
-    card: MC.visual.itemCard('mace', 'Mace', { Damage: '7' }),
+    card: MC.visual.itemCard('shield', 'Shield', { Damage: '7' }),
     cardEscaped: MC.visual.itemCard('x', '<img src=x onerror=alert(1)>', null),
   }));
-  check('mace has no supplied texture (predates the archive)', bare.hasMace, false);
-  check('the unresolved id has no src', bare.srcNone, null);
   check('shield has no supplied texture (real inventory art is a 3D banner-overlay model, not a flat icon)', bare.hasShield, false);
+  check('the unresolved id has no src', bare.srcNone, null);
   check('resin_bricks has no supplied texture (postdates Minecraft 1.20.1)', bare.hasResinBricks, false);
   check('with no texture, the equipment tile draws the SVG glyph, not an <img>', bare.equip.includes('<img'), false);
   has('...marked as the glyph tile, not a texture tile', bare.equip, 'mc-tile');
   check('a fallback never emits a broken <img>', bare.block.includes('<img'), false);
   has('a block with no texture falls back to its palette colour', bare.block, '#7CBD6B');
-  has('an item card shows its name', bare.card, 'Mace');
+  has('an item card shows its name', bare.card, 'Shield');
   has('an item card shows its passed properties', bare.card, 'Damage: 7');
   check('item card names are escaped, not injected', bare.cardEscaped.includes('<img src=x'), false);
+
+  // ── VERSION-AWARE ASSET STATUS (mace: FOUND vs UNAVAILABLE_FOR_VERSION) ──
+  // mace has a real supplied texture (from the 1.20.5-26.2 archive) but
+  // the item itself was added in Java 1.21 (rank 55) — MC.textureStatus()
+  // must distinguish "no texture" from "texture exists, but this id
+  // doesn't exist yet in the selected version", which MC.hasTexture()
+  // alone cannot: it only ever answers the file-existence question.
+  await setVersion('1.20.1');
+  const maceOld = await page.evaluate(() => ({
+    hasTexture: MC.hasTexture('mace', 'item'),         // file exists...
+    status: MC.textureStatus('mace', 'item', 55),       // ...but not for this version
+  }));
+  check('mace has a real supplied texture even on 1.20.1 (hasTexture is version-agnostic)', maceOld.hasTexture, true);
+  check('...but textureStatus reports it unavailable for 1.20.1 (added in 1.21)', maceOld.status.status, 'unavailable_for_version');
+  check('an unavailable status carries no path', maceOld.status.path, null);
+
+  await setVersion('1.21.1');
+  const maceNew = await page.evaluate(() => MC.textureStatus('mace', 'item', 55));
+  check('on 1.21.1 (mace\'s own version), textureStatus reports found', maceNew.status, 'found');
+  has('...with the real texture path', maceNew.path, 'assets/textures/item/mace.png');
+
+  const missingStatus = await page.evaluate(() => MC.textureStatus('zz_status_probe_missing', 'item', 0));
+  check('an id with no texture at all reports missing, not unavailable', missingStatus.status, 'missing');
+
+  // ── MODERN TEXTURE VARIANTS (1.20.5+ art updates) ──────────────
+  // A handful of ids (confirmed by pixel-diffing the two supplied
+  // archives) were redrawn in the 1.20.5+ era. MC.textureSrc() must
+  // keep resolving the pre-1.20.5 file for older versions and switch to
+  // the assets/textures/<kind>/_modern/<id>.png override once the
+  // selected version has the 'modern_textures' feature — for every
+  // other id (no _modern file), both versions resolve the same file.
+  await setVersion('1.20.1');
+  const legacyVariant = await page.evaluate(() => ({
+    hasModern: MC.has('modern_textures'),
+    candle: MC.textureSrc('candle', 'block'),
+    stone: MC.textureSrc('stone', 'block'),
+  }));
+  check('1.20.1 does not have the modern_textures feature', legacyVariant.hasModern, false);
+  has('candle resolves to the base (pre-1.20.5) texture on 1.20.1', legacyVariant.candle, 'assets/textures/block/candle.png');
+  hasNot('...never the _modern override', legacyVariant.candle, '_modern');
+  has('an id with no _modern override (stone) is unaffected by the version', legacyVariant.stone, 'assets/textures/block/stone.png');
+
+  await setVersion('1.21.5');
+  const modernVariant = await page.evaluate(() => ({
+    hasModern: MC.has('modern_textures'),
+    candle: MC.textureSrc('candle', 'block'),
+    stone: MC.textureSrc('stone', 'block'),
+  }));
+  check('1.21.5 has the modern_textures feature', modernVariant.hasModern, true);
+  has('candle resolves to the redrawn 1.20.5+ texture on 1.21.5', modernVariant.candle, 'assets/textures/block/_modern/candle.png');
+  has('an id with no _modern override (stone) still resolves the same base file', modernVariant.stone, 'assets/textures/block/stone.png');
+  await setVersion('26.2');
 
   // ── THE GENERIC DROP-IN MECHANISM (an id the repo doesn't ship) ──
   // Proves the resolver isn't hardcoded to the ~580 supplied ids —
@@ -201,7 +259,12 @@ try {
 
   await page.fill('#nbt-item-search', 'mace');
   await page.waitForTimeout(150);
-  check('an item with no supplied texture (Mace) shows an initial, not a broken image',
+  has('Mace now has a real supplied texture (from the 1.20.5-26.2 archive) and renders it, even though Kit Builder does not version-gate items',
+    await page.locator('.item-sel-card').first().innerHTML(), 'assets/textures/item/mace.png');
+
+  await page.fill('#nbt-item-search', 'shield');
+  await page.waitForTimeout(150);
+  check('an item with no supplied texture (Shield) shows an initial, not a broken image',
     await page.locator('.item-sel-card .item-sel-initial').count() > 0, true);
   await page.fill('#nbt-item-search', '');
 
@@ -257,6 +320,28 @@ try {
   await page.waitForTimeout(150);
   has('Enchantment Hub renders the real Diamond Pickaxe texture, not a placeholder',
     await page.locator('.eh-item-card').first().innerHTML(), 'assets/textures/item/diamond_pickaxe.png');
+
+  // ── VERSION-GATED ITEM LOCKING: data-driven, not a per-item hack ──
+  // itemGateOk() reads each item's own 'min' rank (lib/data/items.php)
+  // rather than hardcoding "if slot === Mace" — this proves the lock
+  // (and its label) tracks the registry, and both react live to the
+  // version selector with no page reload.
+  await setVersion('1.20.1');
+  await page.fill('#eh-search', 'mace');
+  await page.waitForTimeout(150);
+  const maceLocked = await page.locator('.eh-item-card').first().innerHTML();
+  has('Mace is shown locked on 1.20.1 (added in Java 1.21)', maceLocked, 'eh-item-lock');
+  has('...with a version label naming the version it needs', maceLocked, 'Needs Java 1.21.1+');
+  has('...but still shows its real texture, not a placeholder (you can see what it is before unlocking)',
+    maceLocked, 'assets/textures/item/mace.png');
+
+  await setVersion('1.21.1');
+  await page.fill('#eh-search', 'mace');
+  await page.waitForTimeout(150);
+  const maceUnlocked = await page.locator('.eh-item-card').first().innerHTML();
+  hasNot('Mace is unlocked on 1.21.1 (its own version)', maceUnlocked, 'eh-item-lock');
+  await setVersion('26.2');
+  await page.fill('#eh-search', '');
 
   // Search never duplicates texture-path logic — it has no per-item
   // Minecraft art of its own to resolve (its result icons are generic
