@@ -231,6 +231,22 @@ await page.fill('#eh-target', 'ab');
 await page.waitForTimeout(80);
 has('a suspicious short name warns but still generates', await cmd(), '/give ab diamond_sword');
 has('the short name is flagged', await warn(), '3-16 characters');
+
+// Regression: a target with a character Minecraft's parser can't read
+// unquoted (e.g. "Notch<") used to warn-and-generate anyway, producing
+// "/give Notch< diamond_sword..." — which the game rejects with
+// "Expected whitespace to end one argument, but found trailing data".
+// It must block generation entirely instead.
+await page.fill('#eh-target', 'Notch<');
+await page.waitForTimeout(80);
+check('a target with an unquotable character generates no command', await cmd(), '');
+has('the bad character is explained, not silently dropped', await says(), 'can\'t read there');
+check('the malformed command never reaches the output', (await cmd()).includes('<'), false);
+
+await page.fill('#eh-target', '<script>');
+await page.waitForTimeout(80);
+check('a target that is entirely unsafe characters also blocks', await cmd(), '');
+
 await page.fill('#eh-target', '@p');
 await page.waitForTimeout(80);
 
