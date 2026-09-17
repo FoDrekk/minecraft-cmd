@@ -1,0 +1,5 @@
+# Everything the engine needs beyond the standard library is optional:
+# without Pillow, diff.py still works, it just skips pixel-level
+# comparison and falls back to reporting any byte difference as
+# "changed" (see diff.py's module docstring).
+Pillow>=10

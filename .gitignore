@@ -5,3 +5,7 @@
 
 # Test harness dependencies (see package.json).
 /node_modules/
+
+# Python bytecode cache (see python/minecraft_engine/).
+__pycache__/
+*.pyc
