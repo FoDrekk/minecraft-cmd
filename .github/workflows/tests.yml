@@ -61,7 +61,24 @@ jobs:
         if: matrix.backend == 'mysql'
         run: |
           sudo systemctl start mysql.service
-          for i in $(seq 1 30); do mysqladmin ping -h 127.0.0.1 -uroot --silent && break; sleep 1; done
+          # GitHub Actions runs `run:` steps under `bash -e`. A bare
+          # `cmd && break` as a for-loop statement aborts the whole step
+          # the instant the first ping fails (mysqld isn't up yet) rather
+          # than retrying — the `if` form is the one that's actually safe
+          # under `set -e`.
+          ready=0
+          for i in $(seq 1 30); do
+            if mysqladmin ping -h 127.0.0.1 -uroot --silent; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+          if [ "$ready" != "1" ]; then
+            echo "::error::MySQL did not accept connections within 30s"
+            sudo journalctl -u mysql.service --no-pager | tail -50
+            exit 1
+          fi
           sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';"
           sudo mysql -e "FLUSH PRIVILEGES;"
           mysql -h 127.0.0.1 -uroot -e "CREATE DATABASE IF NOT EXISTS minecraft_cmd CHARACTER SET utf8mb4;"
