@@ -61,13 +61,14 @@ switch ($action) {
         $tab  = sanitize($_POST['tab'] ?? 'give', 30);
         $note = sanitize($_POST['note'] ?? '', 255);
         if (!$cmd) err('Empty command');
-        $added = favAdd($cmd, $tab, $note, [
+        $result = favAdd($cmd, $tab, $note, [
             'name'     => sanitize($_POST['name'] ?? '', 120) ?: null,
             'category' => sanitize($_POST['category'] ?? '', 40) ?: null,
             'version'  => sanitize($_POST['version'] ?? mcCurrentVersion(), 20),
             'tags'     => sanitize($_POST['tags'] ?? '', 255) ?: null,
         ]);
-        if (!$added) err('That command is already in your library');
+        if ($result === 'duplicate') err('That command is already in your library');
+        if ($result === 'error') err('Could not save that command — please try again');
         ok(['rows' => favGet()]);
 
     case 'fav_get':
