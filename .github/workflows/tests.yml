@@ -6,19 +6,29 @@ on:
 
 jobs:
   test:
-    name: Lint and browser tests
+    name: Lint and browser tests (${{ matrix.backend }})
     runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # db.php tries MySQL first — "the normal XAMPP setup" it's built
+        # for — and only falls back to SQLite when that's unreachable.
+        # Testing only the fallback let a MySQL-only bug (dbAddColumn()'s
+        # column-existence check throwing on a SHOW ... LIKE ? prepare,
+        # which MySQL/MariaDB can't do but SQLite's PRAGMA-based check
+        # never hit) go undetected in CI. Running both legs closes that
+        # gap without dropping the fallback coverage that was already here.
+        backend: [mysql, sqlite]
 
     steps:
       - uses: actions/checkout@v4
 
-      # The app is plain PHP. pdo_sqlite and sqlite3 are what db.php falls
-      # back to when MySQL is not reachable, which is the case here.
       - name: Set up PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.3'
-          extensions: pdo_sqlite, sqlite3, mbstring
+          extensions: pdo_sqlite, sqlite3, pdo_mysql, mbstring
           coverage: none
 
       - name: Set up Node
@@ -40,6 +50,29 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      # db.php's connection settings are hardcoded (host=localhost,
+      # user=root, empty password, db=minecraft_cmd — the XAMPP defaults
+      # this app targets), so this matches that exactly rather than
+      # pointing the app at a differently-configured service. ubuntu-latest
+      # ships MySQL preinstalled but stopped, with root on the
+      # auth_socket plugin — start it and switch root to a password-based
+      # plugin so the same empty-password login db.php uses actually works.
+      - name: Start MySQL
+        if: matrix.backend == 'mysql'
+        run: |
+          sudo systemctl start mysql.service
+          for i in $(seq 1 30); do mysqladmin ping -h 127.0.0.1 -uroot --silent && break; sleep 1; done
+          sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';"
+          sudo mysql -e "FLUSH PRIVILEGES;"
+          mysql -h 127.0.0.1 -uroot -e "CREATE DATABASE IF NOT EXISTS minecraft_cmd CHARACTER SET utf8mb4;"
+
+      # For the sqlite leg, make sure no local MySQL is listening, so
+      # db.php's MySQL attempt genuinely fails over to the fallback
+      # instead of accidentally hitting the runner's preinstalled server.
+      - name: Stop MySQL
+        if: matrix.backend == 'sqlite'
+        run: sudo systemctl stop mysql.service || true
+
       # tests/run.sh starts its own PHP server unless MCCMD_BASE already
       # points at a running one, and passes that base to every suite.
       - name: Run the test suite
@@ -49,6 +82,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: php-server-log
+          name: php-server-log-${{ matrix.backend }}
           path: /tmp/mccmd-test-server.log
           if-no-files-found: ignore
