@@ -11,6 +11,19 @@
   function el(id) { return document.getElementById(id); }
   var esc = function (s) { return MC.escapeHtml(s); };
 
+  /* Small badge shown only when the Python data engine's scan of a
+     real Minecraft archive (data/generated/*.json, via lib/generated.php)
+     confirmed this id. `g` is always an object ({verified:false,...})
+     even when no generated data exists, so this never has to guard
+     against a missing field. */
+  function verifiedTag(g) {
+    if (!g || !g.verified) return '';
+    var title = 'Confirmed by the Minecraft data engine against a real game archive';
+    if (g.sources && g.sources.length) title += ' (' + g.sources.join(', ') + ')';
+    if (g.changed) title += ' — art changed between scanned versions';
+    return '<span class="verified-tag" title="' + esc(title) + '">✓ scan-verified' + (g.changed ? ' · art updated' : '') + '</span>';
+  }
+
   BLOCKS.forEach(function (b) { byId[b.id] = b; });
 
   /* ═══════════ MATERIALS ═══════════ */
@@ -44,6 +57,7 @@
         '<div class="mat-styles">' + b.styles.map(function (s) {
           return '<span class="mat-style">' + esc(s) + '</span>';
         }).join('') + '</div>' +
+        verifiedTag(b.generated) +
         '</div></div>';
     }).join('');
   }
@@ -79,6 +93,7 @@
         '<div class="item-card-body">' +
         '<div class="item-name">' + esc(it.name) + '</div>' +
         '<div class="item-id" data-copy="' + esc(it.id) + '" title="Click to copy the id">' + esc(it.id) + '</div>' +
+        verifiedTag(it.generated) +
         (enchLink ? '<div style="margin-top:4px">' + enchLink + '</div>' : '') +
         '</div></div>';
     }).join('');

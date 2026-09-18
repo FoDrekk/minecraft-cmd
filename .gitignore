@@ -1,6 +1,9 @@
-# The SQLite fallback database, at the project root only.
-# Anchored with a leading slash: an unanchored "data/" also matches
-# lib/data/, which silently excluded the whole content library.
+# The SQLite fallback database, and data/generated/*.json (the Python
+# data engine's output — see python/README.md and lib/generated.php),
+# at the project root only. Both are regenerable local build state,
+# never required for the app to run. Anchored with a leading slash: an
+# unanchored "data/" also matches lib/data/, which silently excluded
+# the whole content library.
 /data/
 
 # Test harness dependencies (see package.json).

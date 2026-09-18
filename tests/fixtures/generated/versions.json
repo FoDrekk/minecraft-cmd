@@ -1,0 +1,8 @@
+{
+  "versions": {
+    "1.20.1": {"label": "1.20.1", "name": "Trails & Tales", "edition": "java", "syntax": "legacy_nbt", "rank": 35, "released": "2023-06-12"},
+    "26.2": {"label": "26.2", "name": "Chaos Cubed", "edition": "java", "syntax": "component_snbt", "rank": 90, "released": "2026-06-16"}
+  },
+  "features": {"mace": 55, "modern_textures": 50},
+  "default_version": "26.2"
+}

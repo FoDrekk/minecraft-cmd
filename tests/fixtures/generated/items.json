@@ -1,0 +1,5 @@
+[
+  {"id": "diamond_sword", "type": "item_texture", "texture": "item/diamond_sword.png", "source": "1.20.1"},
+  {"id": "diamond_sword", "type": "item_texture", "texture": "textures/item/diamond_sword.png", "source": "26.2"},
+  {"id": "apple", "type": "item_texture", "texture": "item/apple.png", "source": "1.20.1"}
+]

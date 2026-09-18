@@ -130,11 +130,51 @@ live `lib/mc.php`. If PHP genuinely isn't available (e.g. a
 Python-only CI job), `versions.py` also accepts a previously-exported
 JSON snapshot via `--versions-json` / `from_json_file()`.
 
-## Current product integration: none, on purpose
+## Current product integration: optional, read-only enrichment
 
-This first phase deliberately stops at "Python produces validated
-JSON." The PHP app does not read `data/generated/` yet, and this
-package does not modify the command generator, the visual resolver,
-or any existing registry. See the final report from the task that
-built this for exactly what's implemented now versus what the
-architecture is ready for but doesn't do yet.
+`lib/generated.php` (repo root, not inside `python/`) is the one place
+the PHP app reads `data/generated/*.json`. It is read-only, additive,
+and never required:
+
+- Knowledge → Materials and Knowledge → Items merge a small
+  `generated: {verified, sources, changed}` summary onto each block/item
+  row, from `generatedSummary()`. `verified` means "a scanned archive
+  actually contained this id"; `changed` means `version-diff.json`
+  marked its texture as changed between the two scanned sources. The
+  UI shows a "✓ scan-verified" tag only when `verified` is true.
+- Every one of those calls returns `{verified:false, sources:[],
+  changed:false}` when `data/generated/` doesn't exist (the normal
+  state of a fresh clone — see "Generated data is not committed"
+  below), so nothing about the app's behaviour depends on this data
+  having been generated.
+- Nothing here decides display names, categories, hex swatches or
+  styles — those stay hand-curated in `lib/data/*.php`, exactly as
+  before. This package still does not modify the command generator,
+  the texture resolver, or any existing registry — it is read by one
+  small new file, not merged into the existing ones.
+
+### Generated data is not committed
+
+`data/generated/` stays under the repository's existing `/data/`
+`.gitignore` entry — it is a regenerable local build artifact, the
+same category as `data/minecraft_cmd.sqlite` (db.php's fallback
+database) that already lives there. Three reasons:
+
+1. The app's real texture files (`assets/textures/{item,block}/*.png`)
+   are already committed and already power `lib/textures.php`'s
+   resolver — generated JSON adds provenance metadata, not rendering
+   capability, so there's nothing visual a fresh clone is missing.
+2. A full scan of a real archive is thousands of records (the archives
+   used to verify this engine produced 1,854 and 9,304 recognised
+   assets respectively) — committing that wholesale would be exactly
+   the "huge or unnecessary generated file" this project avoids
+   elsewhere.
+3. It requires a legitimately-obtained Minecraft archive to produce,
+   the same restriction that already keeps textures out of the repo
+   by default — committing its output would quietly launder that
+   requirement away.
+
+Because every PHP call above degrades to "unverified" rather than
+failing, this is a safe default: run the engine locally against your
+own archive (see "How to run it" above) to light up the verification
+tags; skip it and the app works exactly as it did before this phase.
