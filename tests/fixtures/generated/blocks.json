@@ -1,0 +1,5 @@
+[
+  {"id": "oak_planks", "type": "block_texture", "texture": "block/oak_planks.png", "source": "1.20.1"},
+  {"id": "candle", "type": "block_texture", "texture": "block/candle.png", "source": "1.20.1"},
+  {"id": "candle", "type": "block_texture", "texture": "textures/block/candle.png", "source": "26.2"}
+]

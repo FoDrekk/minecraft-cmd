@@ -14,6 +14,7 @@ require_once __DIR__ . '/lib/data/tips.php';
 require_once __DIR__ . '/lib/data/ideas.php';
 require_once __DIR__ . '/lib/data/blueprints.php';
 require_once __DIR__ . '/lib/data/enchantments.php';
+require_once __DIR__ . '/lib/generated.php';
 require_once __DIR__ . '/items.php';
 
 $tab  = $_GET['t'] ?? 'materials';
@@ -24,6 +25,32 @@ $styles   = paletteStyles();
 $presets  = palettePresets();
 $saved    = paletteGet();
 $openIdea = $_GET['idea'] ?? '';
+
+// Cross-reference against the Python data engine's scan of a real
+// Minecraft archive (data/generated/*.json — see lib/generated.php).
+// Additive only: when no generated data has been produced, every
+// generatedSummary() comes back {verified:false, sources:[], changed:false}
+// and the Materials/Items tabs render exactly as they did before this
+// existed. Never changes which blocks are shown — only annotates them.
+foreach ($blocks as $id => &$b) {
+    $b['generated'] = generatedSummary($id, 'block');
+}
+unset($b);
+
+// Items respect the selected Minecraft version here, the same way
+// Materials already does above — the legacy $ITEMS/$ITEMS_FLAT globals
+// from items.php stay unfiltered on purpose (Give Item, Kit Builder,
+// the NBT builder and Command Doctor all intentionally offer every
+// item regardless of version), so this tab builds its own versioned
+// view rather than changing that shared global.
+$itemsKnowledge = itemsByCategory(mcCurrentVersion());
+foreach ($itemsKnowledge as $cat => &$rows) {
+    foreach ($rows as &$r) {
+        $r['generated'] = generatedSummary($r['id'], 'item');
+    }
+    unset($r);
+}
+unset($rows);
 
 $css = <<<CSS
 .kn-page { max-width:1240px; margin:0 auto; padding:20px 24px 56px; position:relative; z-index:1 }
@@ -49,6 +76,12 @@ $css = <<<CSS
 .mat-styles { display:flex; gap:3px; flex-wrap:wrap; margin-top:5px }
 .mat-style { font-size:9px; font-family:var(--mono); letter-spacing:.6px; text-transform:uppercase;
   color:var(--text3); border:1px solid var(--border2); padding:1px 5px; border-radius:3px }
+/* Shown only when data/generated/*.json (the Python data engine's scan
+   of a real Minecraft archive) confirms this id — absent that data,
+   this tag never renders. See lib/generated.php. */
+.verified-tag { font-size:9px; font-family:var(--mono); letter-spacing:.5px; text-transform:uppercase;
+  color:var(--green); border:1px solid rgba(93,190,122,0.3); background:rgba(93,190,122,0.08);
+  padding:1px 5px; border-radius:3px; display:inline-block; margin-top:4px }
 
 /* Palette */
 .pal-roles { display:grid; grid-template-columns:repeat(auto-fit,minmax(132px,1fr)); gap:9px }
@@ -363,7 +396,7 @@ ui_head('Knowledge', '', $css);
     <input type="text" id="item-search" placeholder="Search items — sword, apple, diamond…" autocomplete="off">
     <select id="item-cat">
       <option value="">All categories</option>
-      <?php foreach (array_keys($ITEMS) as $c): ?><option value="<?= e($c) ?>"><?= e($c) ?></option><?php endforeach; ?>
+      <?php foreach (array_keys($itemsKnowledge) as $c): ?><option value="<?= e($c) ?>"><?= e($c) ?></option><?php endforeach; ?>
     </select>
     <span class="muted" style="font-size:12px" id="item-count"></span>
   </div>
@@ -389,8 +422,13 @@ var BLOCKS = <?= json_encode(array_values($blocks)) ?>;
 <?php if ($tab === 'items'): ?>
 var ITEMS_BY_CAT = <?php
     $itemsOut = [];
-    foreach ($ITEMS as $cat => $list) {
-        foreach ($list as [$id, $name]) $itemsOut[$cat][] = ['id' => $id, 'name' => $name, 'slot' => enchantSlotForItem($id)];
+    foreach ($itemsKnowledge as $cat => $rows) {
+        foreach ($rows as $row) {
+            $itemsOut[$cat][] = [
+                'id' => $row['id'], 'name' => $row['name'], 'slot' => enchantSlotForItem($row['id']),
+                'generated' => $row['generated'],
+            ];
+        }
     }
     echo json_encode($itemsOut);
 ?>;
