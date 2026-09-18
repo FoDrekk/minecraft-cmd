@@ -158,13 +158,24 @@ function dbAddColumn(PDO $db, string $table, string $column, string $definition)
             $cols = $db->query("PRAGMA table_info($table)")->fetchAll();
             foreach ($cols as $c) if (strcasecmp($c['name'], $column) === 0) return;
         } else {
-            $stmt = $db->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
-            $stmt->execute([$column]);
+            // NOT "SHOW COLUMNS FROM `$table` LIKE ?": on MySQL/MariaDB a
+            // SHOW statement cannot be server-side prepared with a
+            // placeholder, and with PDO::ATTR_EMULATE_PREPARES off (see
+            // getDB()) that throws on prepare() — caught below, which
+            // silently skipped every migration in this function forever.
+            // information_schema.COLUMNS is a real table, so a normal
+            // parameterized SELECT against it works.
+            $stmt = $db->prepare(
+                'SELECT 1 FROM information_schema.COLUMNS
+                 WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?'
+            );
+            $stmt->execute([$table, $column]);
             if ($stmt->fetch()) return;
         }
         $db->exec("ALTER TABLE $table ADD COLUMN $column $definition");
     } catch (PDOException $e) {
         // A missing table is fine here — CREATE TABLE above owns that case.
+        error_log("dbAddColumn($table.$column) failed: " . $e->getMessage());
     }
 }
 
@@ -215,25 +226,35 @@ function historyClear(): bool
 }
 
 // ── COMMAND LIBRARY (favourites) ──────────────
-function favAdd(string $command, string $tab, string $note = '', array $meta = []): bool
+/**
+ * Returns 'added', 'duplicate' (this exact command is already saved),
+ * or 'error' (the insert itself failed — no DB, a schema problem,
+ * etc). Kept distinct from 'duplicate' so a caller never reports a
+ * genuine save failure as "already in your library".
+ */
+function favAdd(string $command, string $tab, string $note = '', array $meta = []): string
 {
-    $db = getDB(); if (!$db) return false;
+    $db = getDB(); if (!$db) return 'error';
     try {
         $chk = $db->prepare('SELECT id FROM favourites WHERE username=? AND command=?');
         $chk->execute([APP_USER, $command]);
-        if ($chk->fetch()) return false;
+        if ($chk->fetch()) return 'duplicate';
         $stmt = $db->prepare(
             'INSERT INTO favourites (username, command, tab, note, name, category, mc_version, tags)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
         );
-        return $stmt->execute([
+        $ok = $stmt->execute([
             APP_USER, $command, $tab, $note,
             $meta['name']     ?? null,
             $meta['category'] ?? null,
             $meta['version']  ?? null,
             $meta['tags']     ?? null,
         ]);
-    } catch (PDOException $e) { return false; }
+        return $ok ? 'added' : 'error';
+    } catch (PDOException $e) {
+        error_log('favAdd failed: ' . $e->getMessage());
+        return 'error';
+    }
 }
 
 function favGet(string $category = ''): array
