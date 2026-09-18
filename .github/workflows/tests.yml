@@ -53,13 +53,25 @@ jobs:
       # db.php's connection settings are hardcoded (host=localhost,
       # user=root, empty password, db=minecraft_cmd — the XAMPP defaults
       # this app targets), so this matches that exactly rather than
-      # pointing the app at a differently-configured service. ubuntu-latest
-      # ships MySQL preinstalled but stopped, with root on the
-      # auth_socket plugin — start it and switch root to a password-based
-      # plugin so the same empty-password login db.php uses actually works.
+      # pointing the app at a differently-configured service. A Docker
+      # `services:` container was deliberately not used here: its port
+      # is reachable over TCP, but PHP's PDO_MYSQL driver treats a
+      # host of "localhost" as "connect via the local Unix socket file"
+      # (the same convention the MySQL C client uses), and a container's
+      # socket isn't on the runner's filesystem at the path PHP expects
+      # — so a real local mysqld is what actually matches what db.php
+      # does. Installing it explicitly (rather than assuming ubuntu-latest
+      # ships one preinstalled and pre-registered as a systemd service —
+      # an assumption that turned out to not hold on the current image)
+      # keeps this reproducible regardless of what a given runner image
+      # happens to include. Its root user defaults to the auth_socket
+      # plugin — switch it to a password-based one so the same
+      # empty-password login db.php uses actually works.
       - name: Start MySQL
         if: matrix.backend == 'mysql'
         run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y mysql-server
           sudo systemctl start mysql.service
           # GitHub Actions runs `run:` steps under `bash -e`. A bare
           # `cmd && break` as a for-loop statement aborts the whole step
@@ -82,13 +94,6 @@ jobs:
           sudo mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';"
           sudo mysql -e "FLUSH PRIVILEGES;"
           mysql -h 127.0.0.1 -uroot -e "CREATE DATABASE IF NOT EXISTS minecraft_cmd CHARACTER SET utf8mb4;"
-
-      # For the sqlite leg, make sure no local MySQL is listening, so
-      # db.php's MySQL attempt genuinely fails over to the fallback
-      # instead of accidentally hitting the runner's preinstalled server.
-      - name: Stop MySQL
-        if: matrix.backend == 'sqlite'
-        run: sudo systemctl stop mysql.service || true
 
       # tests/run.sh starts its own PHP server unless MCCMD_BASE already
       # points at a running one, and passes that base to every suite.
